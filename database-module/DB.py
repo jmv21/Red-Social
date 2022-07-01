@@ -35,7 +35,7 @@ class Tweet(BaseModel):
     content = CharField(null=False)
     timestamp = DateTimeField(default=datetime.datetime.now, null=False)
     likes = BigIntegerField(default=0, constraints=[Check('likes>=0')], null=False)
-    user_id = ForeignKeyField(User, backref='tweets', constraints=[Check('friend_id>=0')], null=False)
+    user_id = ForeignKeyField(User, backref='tweets', constraints=[Check('user_id>=0')], null=False)
     ret_id = IntegerField(null=True, default=None)
 
 
@@ -54,7 +54,7 @@ def create_db(initial_id: int = 1):
     db = APSWDatabase('DB1')
     db_proxy.initialize(db)
     db.connect()
-    db.create_tables([User, Tweet])
+    db.create_tables([User, Tweet, Friends, Likes])
 
     new_passw = secrets.token_urlsafe(20)
     key = RSA.generate(2048)
@@ -69,7 +69,7 @@ def create_db(initial_id: int = 1):
                 encK=secrets.token_urlsafe(5))
     user = User.select().limit(1)
     user[0].encK = cryptocode.encrypt(user[0].encK, str(user[0].id) + str(user[0].token))
-    user.save()
+    user[0].save()
     db.close()
 
     return db
@@ -109,8 +109,9 @@ def user_register(name, password: str):
         return False
     new_passw = cryptocode.encrypt(secrets.token_urlsafe(20), password)
     User.create(name=name, passw=new_passw, token=secrets.token_urlsafe(5), enck=secrets.token_urlsafe(5))
-    user = User.select().where(User.name == name)
+    user = User.get(User.name == name)
     user[0].token = token_creation(user[0].id, str(user[0].id) + new_passw)
+    user.save()
     user[0].encK = cryptocode.encrypt(user[0].encK,
                                       cryptocode.decrypt(str(user[0].id) + user[0].token, str(user[0].id + new_passw)))
     user.save()
@@ -153,10 +154,11 @@ def like(user_id, tweet_id, tweet_user_id, db_name: str = 'DB1'):
     if len(Likes.filter(
             Likes.origin_user_id == user_id and Likes.tweet_id == tweet_id and Likes.user_id == tweet_user_id)) != 0:
         dislike = True
-    tweet = Tweet.filter(Tweet.id == tweet_id and Tweet.user_id == user_id)
-    if len(tweet) == 0:
+    try:
+        tweet = Tweet.get(Tweet.id == tweet_id and Tweet.user_id == user_id)
+        Tweet.update(likes=Tweet.likes + 1 if not dislike else -1).where(Tweet.id == tweet_id and Tweet.user_id == user_id).execute()
+    except:
         return False
-    tweet[0].likes += 1 if not dislike else -1
     db.close()
     return True
 
@@ -172,3 +174,6 @@ def execute_order(json_file):
 
     if order is 2:
         return tweet(json_f[1], json_f[2], json_f[3])
+
+
+create_db(2000)
