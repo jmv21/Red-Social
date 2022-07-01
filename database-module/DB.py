@@ -1,4 +1,5 @@
 import datetime
+import json
 
 from getmac import get_mac_address as gma
 
@@ -158,3 +159,16 @@ def like(user_id, tweet_id, tweet_user_id, db_name: str = 'DB1'):
     tweet[0].likes += 1 if not dislike else -1
     db.close()
     return True
+
+
+def execute_order(json_file):
+    json_f = json.load(json_file)
+    order = json_f[0]
+    if order is 0:
+        return user_register(json_f[1], json_f[2])
+
+    if order is 1:
+        return user_login(json_f[1], json_f[2])
+
+    if order is 2:
+        return tweet(json_f[1], json_f[2], json_f[3])
