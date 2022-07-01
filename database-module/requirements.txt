@@ -1,0 +1,6 @@
+apsw==3.38.5.post1
+cryptocode==0.1
+getmac==0.8.3
+peewee==3.15.0
+pycryptodome==3.15.0
+pycryptodomex==3.15.0
