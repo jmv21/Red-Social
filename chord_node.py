@@ -1,5 +1,6 @@
 from cmath import pi
 from hmac import digest_size
+import multiprocessing
 import sys
 from typing import Mapping
 import grpc
@@ -7,24 +8,25 @@ import grpc
 from time import time
 import threading
 import hashlib
-from gRPC.route_guide_pb2 import  Address, Feature, Idvalue
+from gRPC.chord_pb2 import  Address, Feature, Idvalue
 from random import Random
 from functools import reduce
 from socket import gethostbyname, gethostname
 import netaddr
 
-import gRPC.route_guide_pb2_grpc
-import gRPC.route_guide_pb2
+import gRPC.chord_pb2_grpc
+import gRPC.chord_pb2
 #from client import make_stub
 from gRPC.route_guide_server import ChordServicer
 from grpc import insecure_channel
 
 from concurrent import futures
 
-def make_stub(addr):
+
+def make_stub_chord(addr):
         #with insecure_channel(addr) as channel:
         channel = insecure_channel(addr)
-        stub = gRPC.route_guide_pb2_grpc.RouteGuideStub(channel)
+        stub = gRPC.chord_pb2_grpc.RouteGuideStub(channel)
         return stub
 
 #Each node represents an active index in the ring.
@@ -60,7 +62,7 @@ class Node:
         if node_to_join:
             node_to_join_id = netaddr.IPAddress(node_to_join.split(":")[0])
             #recieved_json = client_requester.make_request(json_to_send = {"command_name" : "JOIN", "method_params" : {}, "procedence_addr" : self.addr},destination_id = node_to_join_id, destination_addr = node_to_join)
-            stub = make_stub(node_to_join)
+            stub = make_stub_chord(node_to_join)
             try:
                 resp = stub.Join(Feature(name="REQ"))
             except grpc.RpcError as e:
@@ -78,7 +80,7 @@ class Node:
                 print("Connecting to ", (node_to_join, node_to_join_id))
                 
                 #recieved_json = client_requester.make_request(json_to_send = {"command_name" : "JOIN", "method_params" : {}, "procedence_addr" : self.addr}, destination_id = node_to_join_id, destination_addr = node_to_join)
-                stub = make_stub(node_to_join)
+                stub = make_stub_chord(node_to_join)
                 try:
                     resp = stub.Join(Feature(name="REQ"))
                 except grpc.RpcError as e:
@@ -93,7 +95,7 @@ class Node:
                 node_to_join_id = self.turn_in_hash(self.domain_addr(node_to_join))
                 print("Connecting now to ", (node_to_join_id, node_to_join))                
                 #recieved_json = client_requester.make_request(json_to_send = {"command_name" : "JOIN", "method_params" : {}, "procedence_addr" : self.addr}, destination_id = node_to_join_id, destination_addr = node_to_join)
-                stub = make_stub(node_to_join)
+                stub = make_stub_chord(node_to_join)
                 try:
                     resp = stub.Join(Feature(name="REQ"))
                 except grpc.RpcError as e:
@@ -105,6 +107,8 @@ class Node:
             self.predecessor_addr, self.predecessor_id = self.addr, self.id
             
             self.isPrincipal = True
+
+        self.sn_client = None
 
         self.wrapper_actions()
 
@@ -122,7 +126,7 @@ class Node:
     def waiting_for_command(self):
         
         server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
-        gRPC.route_guide_pb2_grpc.add_RouteGuideServicer_to_server(
+        gRPC.chord_pb2_grpc.add_RouteGuideServicer_to_server(
             ChordServicer(self), server)
         server.add_insecure_port('[::]:{}'.format(self.port))
         server.start()
@@ -167,7 +171,7 @@ class Node:
 
         # Make a request to find predecessor of node_to_join
         #recv_json = sock_req.make_request(json_to_send = {"command_name" : "FIND_PRED", "method_params" : {"id" : id_to_found_pred}, "procedence_addr" : self.addr}, requester_object = self, method_for_wrap = "find_predecesor", destination_id = node_to_join_id, destination_addr = node_to_join)
-        stub = make_stub(node_to_join)
+        stub = make_stub_chord(node_to_join)
         try:
             pred = stub.Find_pred(Idvalue(value=id_to_found_pred))
         except grpc.RpcError as e:
@@ -178,7 +182,7 @@ class Node:
         
         self.predecessor_id, self.predecessor_addr = pred.value, pred.addr   
         #recv_json = sock_req.make_request(json_to_send = {"command_name" : "GET_SUCC_LIST", "method_params" : {}, "procedence_addr" : self.addr}, requester_object = self, asked_properties = ("succ_list",), destination_id = recv_json['return_info']['pred_id'], destination_addr = recv_json['return_info']['pred_addr'] )         
-        stub = make_stub(pred.addr)
+        stub = make_stub_chord(pred.addr)
         try:
             succ_list = stub.Get_succ_list(Feature(name="REQ"))
         except grpc.RpcError as e:
@@ -203,9 +207,8 @@ class Node:
         #return. It is important to know that if the length of the succ_list
         #is and we have k succesive fails in the Chord, we can't expect a good
         #working of the network.  
-        print("stabil {}".format(self.succ_list[0][1]))
         #recv_json_pred = socket_req.make_request(json_to_send = {"command_name" : "GET_PRED", "method_params" : {}, "procedence_addr" : self.addr, "procedence_method": "stabilize_95"}, requester_object = self, asked_properties = ('predecessor_id', 'predecessor_addr'), destination_id = self.succ_list[0][0], destination_addr = self.succ_list[0][1])
-        stub = make_stub(self.succ_list[0][1])
+        stub = make_stub_chord(self.succ_list[0][1])
         try:
             pred = stub.Get_pred(Feature(name="REQ"))
         except grpc.RpcError as e:
@@ -228,7 +231,7 @@ class Node:
         if self.between(pred.value, interval = (self.id, self.succ_list[0][0]) ):
             
             #recv_json_pred_succ_list = socket_req.make_request( json_to_send = {"command_name" : "GET_SUCC_LIST", "method_params" : {}, "procedence_addr" : self.addr, "procedence_method":  "stabilize_109"}, requester_object = self, asked_properties = ('succ_list',), destination_id = recv_json_pred['return_info'][ 'predecessor_id'], destination_addr = recv_json_pred['return_info'][ 'predecessor_addr'])
-            stub = make_stub(pred.addr)
+            stub = make_stub_chord(pred.addr)
             
             try:
                 pred_succ_list = stub.Get_succ_list(Feature(name="REQ"))
@@ -254,7 +257,6 @@ class Node:
         # if this node's id is between self.predecessor_id and predecessor_id
         # and self.predeccesor_id == self.id
         # then change this node predecessor to the new one
-        print("rect with {} {}".format(predecessor_id, predecessor_addr))
         if self.between(predecessor_id, interval = (self.predecessor_id, self.id)) or self.id == self.predecessor_id:
             
             if self.predecessor_id == self.id: 
@@ -267,32 +269,27 @@ class Node:
 
             # Check if self.predecessor is available            
             #recv_json_alive = sock_req.make_request(json_to_send = {"command_name" : "ALIVE", "method_params" : {}, "procedence_addr" : self.addr, "procedence_method": "rectify"}, destination_id = self.predecessor_id, destination_addr = self.predecessor_addr)
-            stub = make_stub(self.predecessor_addr)
+            stub = make_stub_chord(self.predecessor_addr)
             try:
                 resp = stub.Alive(Feature(name="REQ"))
             except grpc.RpcError as e:
                 self.predecessor_id, self.predecessor_addr = predecessor_id, predecessor_addr
           
         
-    def printing_succ(self):
-        countdown = time()
-        
-        while True:
-            if abs (countdown - time( ) ) > 20:
-                # TEST
-                print(self.succ_list)
-                countdown = time()
     
     def wrapper_actions(self):
         
         thr_stabilize = threading.Thread(target = self.wrapper_loop_stabilize, args =() )
         thr_stabilize.start()
-        thr_waiting_for_command = threading.Thread(target= self.printing_succ, args=())        
+        thr_waiting_for_command = threading.Thread(target= self.waiting_for_command, args=())        
         thr_waiting_for_command.start()
-        self.waiting_for_command()
+        #thr_stabilize = multiprocessing.Process(target = self.wrapper_loop_stabilize, args =() )
+        #thr_stabilize.start()
+        #thr_waiting_for_command = multiprocessing.Process(target= self.waiting_for_command, args=())        
+        #thr_waiting_for_command.start()
+        #self.waiting_for_command()
 
     def wrapper_loop_stabilize(self):
-        print("started stabilize")
         countdown = time()
         rand = Random()
         rand.seed()
@@ -308,9 +305,8 @@ class Node:
                     #Independetly of the result of the stabilize, the node sends a notify message to its succesor, asking for a rectification of the predecessor values.
                     
                     #local_requester.make_request(json_to_send = {"command_name" : "RECT", "method_params" : { "predecessor_id": self.id, "predecessor_addr" : self.addr }, "procedence_addr" : self.addr, "procedence_method": "wrapper_loop_stabilize", "time": time()}, destination_id = self.succ_list[0][0], destination_addr = self.succ_list[0][1]) is local_requester.error_json and self.vocal_option:
-                    stub = make_stub(self.succ_list[0][1])
+                    stub = make_stub_chord(self.succ_list[0][1])
                     try:
-                        print("rect to {}".format(self.succ_list[0][1]))
                         stub.Rectify(Address(value=self.id,addr=self.addr))
                     except grpc.RpcError as e:
                         print("rect error")
@@ -319,8 +315,7 @@ class Node:
                         
 
                     index = rand.choice( choices )                    
-                    self.finger_table[ index ] = self.find_successor(self.start(index))
-                    print("did it")    
+                    self.finger_table[ index ] = self.find_successor(self.start(index)) 
 
 
                 countdown = time()
@@ -342,7 +337,7 @@ class Node:
             # Wait for the response of GET_SUCC_LIST request
                          
             #recv_json = sock_req.make_request(json_to_send = {"command_name" : "GET_SUCC_LIST", "method_params": {}, "procedence_addr": self.addr, "procedence_method": "find_succesor_286"}, requester_object= self, asked_properties = ('succ_list', ), destination_id = destination_id, destination_addr = destination_addr ) 
-            stub = make_stub(destination_addr)
+            stub = make_stub_chord(destination_addr)
             try:
                 succ_list = stub.Get_succ_list(Feature(name="REQ"))
             except grpc.RpcError as e:
@@ -367,12 +362,10 @@ class Node:
         current_succ_id, current_succ_addr = self.succ_list[0]
         self.finger_table[0] = self.succ_list[0]
         current_addr = self.addr  
-        print("find_pred")
          
         while not self.between(id, interval = (current_id, current_succ_id)) and current_succ_id != id :            
-            print('aqui')
             #recv_json_closest = sock_req.make_request(json_to_send = {"command_name" : "CLOSEST_PRED_FING", "method_params" : {"id": id}, "procedence_addr" : self.addr, "procedence_method": "find_predecessor"}, method_for_wrap = 'closest_pred_fing', requester_object = self, destination_id = current_id, destination_addr = current_addr)
-            stub = make_stub(current_addr)
+            stub = make_stub_chord(current_addr)
             try:
                 pred = stub.Closest_pred_fing(Idvalue(value=id))
             except grpc.RpcError as e:
@@ -381,7 +374,7 @@ class Node:
             
             
             #recv_json_succ = sock_req.make_request(json_to_send = {"command_name" : "GET_SUCC_LIST", "method_params" : {}, "procedence_addr" : self.addr, "procedence_method" : "find_predecessor" }, requester_object = self, asked_properties = ("succ_list", ), destination_id = recv_json_closest['return_info'][0], destination_addr = recv_json_closest['return_info'][1] )
-            stub = make_stub(pred.addr)
+            stub = make_stub_chord(pred.addr)
             try:
                 succ_list = stub.Get_succ_list(Feature(name="REQ"))
                 succ_list = self._parse_address_list(succ_list)
@@ -393,7 +386,7 @@ class Node:
                 
             current_id, current_addr = pred.value, pred.addr
             current_succ_id, current_succ_addr = succ_list[0]               
-        print("yo {} {}".format(current_id, current_addr))
+
         return current_id, current_addr
 
     def closest_pred_fing_wrap (self, id):        
@@ -419,7 +412,7 @@ class Node:
     #def closest_storage_node(self, response_addr, first_node_addr, sock_req):
     def closest_storage_node(self, first_node_addr):
         ip, port = self.addr.split(":")[0], self.addr.split(":")[1]
-        port = int(port) + 1
+        port = int(port) 
         destination_addr = ip + ":{}".format(port)
 
         
@@ -435,29 +428,29 @@ class Node:
            
             
             #sock_req.send_json({"response" : "ACK", "return_info" : {"STORAGE_ADDR": destination_addr, "Storage_Node": recv_json["return_info"]["Storage_Node"]}, "procedence": self.addr})
-            return is_storage, destination_addr, True
+            return is_storage, destination_addr, True, False
         else:
             if first_node_addr is None: first_node_addr = self.addr
 
             if first_node_addr == self.succ_list[0][1]:
-                 return is_storage, None, False
+                 return is_storage, None, False, False
 
             # TEST
             #print("ask next node if storage")
             next_node_id, next_node_addr = self.succ_list[0][0], self.succ_list[0][1]
 
             #recv_json = sock_req.make_request(json_to_send = {"command_name" : "GET_STORAGE", "method_params" : { "response_addr": response_addr, "first_node_addr" : first_node_addr }, "procedence_addr": self.addr}, requester_object= self, asked_properties = None, destination_id = next_node_id, destination_addr = next_node_addr) 
-            stub = make_stub(next_node_addr)
+            stub = make_stub_chord(next_node_addr)
             try:
                 stor = stub.Get_storage(Address(value=0,addr=first_node_addr))
             except grpc.RpcError as e:
-                return False, None, False
+                return False, None, False, True
             else:
-                return stor.is_storage, stor.addr, stor.found
+                return stor.is_storage, stor.addr, stor.found, False
 
     def closest_non_storage_node(self, first_node_addr):
         ip, port = self.addr.split(":")[0], self.addr.split(":")[1]
-        port = int(port) + 1
+        port = int(port)
         destination_addr = ip + ":{}".format(port)
 
         
@@ -473,26 +466,32 @@ class Node:
            
             
             #sock_req.send_json({"response" : "ACK", "return_info" : {"STORAGE_ADDR": destination_addr, "Storage_Node": recv_json["return_info"]["Storage_Node"]}, "procedence": self.addr})
-            return is_storage, destination_addr, True
+            return is_storage, destination_addr, True, False
         else:
             if first_node_addr is None: first_node_addr = self.addr
 
             if first_node_addr == self.succ_list[0][1]:
-                 return is_storage, None, False
+                 return is_storage, None, False, False
 
             # TEST
             #print("ask next node if storage")
             next_node_id, next_node_addr = self.succ_list[0][0], self.succ_list[0][1]
 
             #recv_json = sock_req.make_request(json_to_send = {"command_name" : "GET_NON_STORAGE", "method_params" : { "response_addr": response_addr, "first_node_addr" : first_node_addr }, "procedence_addr": self.addr}, requester_object= self, asked_properties = None, destination_id = next_node_id, destination_addr = next_node_addr) 
-            stub = make_stub(next_node_addr)
+            stub = make_stub_chord(next_node_addr)
             try:
                 stor = stub.Get_non_storage(Address(value=0,addr=first_node_addr))
             except grpc.RpcError as e:
-                return False, None, False
+                return False, None, False , True
             else:
-                return stor.is_storage, stor.addr, stor.found
+                return stor.is_storage, stor.addr, stor.found, False
 
+    def make_storage(self, K, index, storage_nodes):
+        #self.sn_client.make_storage_wrapper(K, index, storage_nodes)
+        self.sn_client.make_storage_node(K, index, storage_nodes)
+        return
 
+    def remove_storage(self):
 
+        self.sn_client.remove_storage()
 

@@ -1,5 +1,6 @@
 
 from ast import arg
+import ctypes
 from socket import gethostbyname, gethostname
 #import zmq
 import argparse
@@ -8,6 +9,7 @@ import chord_node
 import threading
 from time import time
 import storage_node
+import multiprocessing
 
 
 
@@ -19,6 +21,8 @@ class Client:
         #self.context = zmq.Context()
         #self.sock_req = self.context.socket(zmq.REP)
         self.c_node = c_node
+        self.c_node.bind_client(self)
+
         self.ip_port = c_node.addr
         self._storage = False
         if storage_node is not None: self._storage = True
@@ -117,17 +121,47 @@ class Client:
     def is_storage(self):
         return self._storage
     
+    def make_storage_wrapper(self, K, index, storage_nodes):
+        #thr_make_stor = threading.Thread(target = self.make_storage_node, args =[K, index, storage_nodes])
+        #thr_make_stor.start()
+        #thr_make_stor = multiprocessing.Process( target=self.make_storage_node, args =[K, index, storage_nodes])
+        #thr_make_stor.start()
+        return
+
     #def __init__(self, addr, K, index, storage_nodes = None, vocal_option = False):
     def make_storage_node(self, K, index, storage_nodes):
         
         print("NOW I AM STORAGE")
-        self.sock_req.send_json({"response": "ACK", "procedence_addr": self.ip_port})
         self.storage_node = storage_node.StorageNode(self.c_node.addr, K, index, storage_nodes)
         self._storage = True
-        self.sock_req.send_json({"response": "ACK", "procedence_addr": self.ip_port})
 
+    def remove_storage(self):
+        print("removing storage")
+        #Thread = self.storage_node.thr_wait_for_command
+        self._stop_threads([self.storage_node.thr_wait_for_command, self.storage_node.thr_check_succ])
+        #self.storage_node.thr_wait_for_command.terminate()
+        #self.storage_node = None
+        #self._storage = False
+        
+        
+      
+    
+    def _stop_threads(self, threads):
 
-
+        for item in threads:
+            thread = item
+            exc = ctypes.py_object(SystemExit)
+            res = ctypes.pythonapi.PyThreadState_SetAsyncExc(
+                ctypes.c_long(thread.ident), exc)
+            if res == 0:
+                raise ValueError("nonexistent thread id")
+            elif res > 1:
+            # """if it returns a number greater than one, you're in trouble,
+            # and you should call it again with exc=NULL to revert the effect"""
+                ctypes.pythonapi.PyThreadState_SetAsyncExc(thread.ident, None)
+                raise SystemError("PyThreadState_SetAsyncExc failed")
+        
+        print("successful")
 
 
 if __name__ == "__main__":
@@ -148,12 +182,14 @@ if __name__ == "__main__":
     
 
     n = chord_node.Node(addr = args.addr_id, node_to_join = args.addr_known, vocal_option = args.v)
-    #if args.addr_id == '172.17.0.2:8080':
-        #sn = StorageNode(args.addr_id, 2, 0, storage_nodes=None, vocal_option=True)
-    #else: sn = None
-    sn = None
+    if args.addr_id == '172.17.0.2:8080':
+        print('first addr stor')
+        sn = storage_node.StorageNode(args.addr_id, 2, 0, storage_nodes=None, vocal_option=True)
+    else: sn = None
+    #sn = None
     
     cl = Client(None, n, storage_node=sn)
+
     
     
     
