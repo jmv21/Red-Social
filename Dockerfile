@@ -4,8 +4,17 @@ FROM python:3.7-slim
 RUN pip install grpcio
 RUN pip install protobuf
 RUN pip install netaddr
-COPY . /chord
-WORKDIR /chord
+RUN pip install apsw==3.38.5.post1
+RUN pip install cryptocode==0.1
+RUN pip install getmac==0.8.3
+RUN pip install peewee==3.15.0
+RUN pip install pycryptodome==3.15.0
+RUN pip install pycryptodomex==3.15.0
+COPY . /sn
+WORKDIR /sn
+#RUN pip install -r requirements.txt
+#RUN apt-get update && apt-get -y upgrade
+
 
 
 #Adding files.
@@ -21,4 +30,4 @@ EXPOSE 8082
 
 
 #Default running
-ENTRYPOINT ["python", "/chord/client.py"] 
+ENTRYPOINT ["python", "/sn/client.py"] 

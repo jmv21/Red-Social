@@ -1,0 +1,63 @@
+
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "io.grpc.examples.routeguide";
+option java_outer_classname = "RouteGuideProto";
+option objc_class_prefix = "RTG";
+
+package routeguide;
+
+// Interface exported by the server.
+service StorageServicer {
+
+  // Basic message to recognize if there is a steady connection
+  rpc Alive(FeatureS) returns (FeatureS) {}
+  
+  rpc Update_list(Address_listS) returns (FeatureS) {}
+
+  rpc Ask_for_file(FeatureS) returns (stream DataS) {}
+  
+
+}
+
+
+
+
+// A feature names something at a given point.
+//
+// If a feature could not be named, the name is empty.
+message FeatureS {
+  // The name of the feature.
+  string name = 1;
+}
+
+message IdvalueS {
+  int64 value = 1;
+}
+
+message AddressS {
+  // The id of the node in addr
+  int64 value = 1;
+  // An ip and port of the node
+  string addr = 2;
+}
+
+message Address_listS {
+  // Defines a list or array of id and address
+  repeated AddressS values = 1;
+}
+
+message StorageS {
+  
+  string addr = 1;
+  bool is_storage = 2;
+  bool found = 3;
+}
+
+message DataS {
+
+  bytes data = 1;
+}
+
+
