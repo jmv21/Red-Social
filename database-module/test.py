@@ -1,6 +1,13 @@
 import uuid
 
-id = uuid.uuid4().int
-id2 =uuid.uuid4().int & (1<<64)-1
-print(id)
-print(id2)
+from DB import *
+
+create_db(initial_id=1000)
+
+db = db_connect()
+
+user_register('carlos', 'name', uuid.uuid4().int)
+user_register('jose', 'name', uuid.uuid4().int)
+user_register('david', 'name', uuid.uuid4().int)
+user_register('charles', 'name', uuid.uuid4().int)
+

@@ -27,8 +27,8 @@ class BaseModel(Model):
 
 
 class User(BaseModel):
-    id = AutoField()
-    name = CharField()
+    id = BigIntegerField(primary_key=True)
+    name = CharField(null=None, constraints=[Check('len(name)<=8')])
     passw = TextField()
     token = TextField()
     encK = CharField(null=True)
@@ -40,7 +40,7 @@ class Tweet(BaseModel):
     likes = BigIntegerField(default=0, constraints=[Check('likes>=0')], null=False)
     user_id = ForeignKeyField(User, backref='tweets', constraints=[Check('user_id>=0')], null=False)
     ret_id = IntegerField(null=True, default=0)
-    ret_user_id = ForeignKeyField(User, backref='tweets', constraints=[Check('user_id>=0')], default = 0)
+    ret_user_id = ForeignKeyField(User, backref='tweets', constraints=[Check('user_id>=0')], default=0)
     ret_user_name = CharField(default=None)
 
 
@@ -107,13 +107,13 @@ def token_creation(id: int, passw):
     return tok_encoded
 
 
-def user_register(name, password: str, id:int):
-    db = db_connect()
+def user_register(name, password: str, user_id: int, db_name: str = 'DB1'):
+    db = db_connect(db_name)
     user = User.select().where(User.name == name)
     if (len(user) > 0):
         return False
     new_passw = cryptocode.encrypt(secrets.token_urlsafe(20), password)
-    User.create(id = id, name=name, passw=new_passw, token=secrets.token_urlsafe(5), encK=secrets.token_urlsafe(5))
+    User.create(id=user_id, name=name, passw=new_passw, token=secrets.token_urlsafe(5), encK=secrets.token_urlsafe(5))
     user = User.get(User.name == name)
     user[0].token = token_creation(user[0].id, str(user[0].id) + new_passw)
     user.save()
@@ -124,11 +124,20 @@ def user_register(name, password: str, id:int):
     return True
 
 
-def user_login(name, password):
-    db = db_connect()
-    user = User.select().where(User.name == name)
+def user_login(name, password, user_id=None, db_name: str = 'DB1'):
+    db = db_connect(db_name)
+    if (user_id is None):
+        user = User.select().where(User.name == name)
+    else:
+        try:
+            user = User.get_by_id(user_id)
+            if (user[0].name != name):
+                return False
+        except:
+            return False
+
     if len(user) < 0:
-        return (False,0)
+        return (False, 0)
     passw = cryptocode.decrypt(user[0].passw, password)
 
     if passw is False:
@@ -141,10 +150,16 @@ def user_login(name, password):
         user[0].token = tok
         user[0].encK = cryptocode.encrypt(user[0].encK,
                                           cryptocode.decrypt(str(user[0].id) + user[0].token, str(user[0].id + passw)))
-
     db.close()
 
     return (True, tok)
+
+
+def follow(user_id, followed_id, db_name: str = 'DB1'):
+    db = db_connect(db_name)
+    Friends.get_or_create(user_id=user_id, friend_id=followed_id)
+    db.close()
+    return True
 
 
 def like(user_id, tweet_id, tweet_user_id, db_name: str = 'DB1'):
@@ -163,17 +178,17 @@ def like(user_id, tweet_id, tweet_user_id, db_name: str = 'DB1'):
     return True
 
 
-def execute_order(json_file):
-    json_f = json.load(json_file)
-    order = json_f[0]
-    if order == 0:
-        return user_register(json_f[1], json_f[2], json_f[3])
+def get_random_tweets(quantity: int, db_name='DB1'):
+    db = db_connect(db_name)
+    answ = Tweet.select().order_by(fn.Random()).limit(quantity)
+    db.close()
+    return answ
 
-    if order == 1:
-        return user_login(json_f[1], json_f[2])
 
-    if order == 2:
-        return tweet(json_f[1], json_f[2], json_f[3])
+def get_followed_updated_tweets(followed_id_list, db_name: str = 'DB1'):
+    followed_tweets = Tweet.Select().where(Tweet.ret_user_id.in_(followed_id_list))
+    followed_tweets = followed_tweets.having(fn.COUNT(Tweet.user_id) == 10)
+    return followed_tweets
 
 
 def tweet(user_id: int, text, ret_id=0, db_name: str = 'DB1'):
@@ -181,30 +196,54 @@ def tweet(user_id: int, text, ret_id=0, db_name: str = 'DB1'):
     user = User.filter(User.id == user_id)
     Tweet.create(content=text, user_id=user[0].id, ret_id=ret_id)
     db.close()
+    return True
 
 
-def load_with_datetime(pairs, format='%Y-%m-%dT%H:%M:%S.%f'):
-    """Load with dates"""
-    d = {}
-    for k, v in pairs:
-        if isinstance(v, str):
-            try:
-                d[k] = datetime.strptime(v, format).date()
-            except ValueError:
-                d[k] = v
-        else:
-            d[k] = v
-    return d
+def execute_order(json_file):
+    json_f = json.load(json_file)
+    order = json_f[0]
+    if order == 0:
+        return user_register(json_f[1], json_f[2], json_f[3], json_f[4] if len(json_f) == 5 else 'DB1')
+
+    elif order == 1:
+        return user_login(json_f[1], json_f[2], json_f[3] if len(json_f) >= 4 else 'DB1',
+                          json_f[4] if len(json_f) == 5 else 'DB1')
+
+    elif order == 2:
+        return tweet(json_f[1], json_f[2], json_f[3], json_f[4] if len(json_f) == 5 else 'DB1')
+
+    elif order == 3:
+        return like(json_f[1], json_f[2], json_f[3], json_f[4] if len(json_f) == 5 else 'DB1')
+
+    elif order == 4:
+        return get_followed_updated_tweets(json_f[1], json_f[2] if len(json_f) == 3 else 'DB1')
+
+    elif order == 5:
+        return get_random_tweets(json_f[1], json_f[2] if len(json_f) == 3 else 'DB1')
+
+    elif order == 6:
+        return follow(json_f[1], json_f[2] if len(json_f) == 3 else 'DB1')
 
 
-def json_serial(obj):
-    """JSON serializer for objects not serializable by default json code"""
-    try:
-        if isinstance(obj, (datetime, datetime.date)):
-            return obj.isoformat()
-        raise TypeError("Type %s not serializable" % type(obj))
-    except:
-        pass
+"""------------------------Utils---------------------------------"""
+
+
+def get_user_name(user_id, db_name: str = 'DB1'):
+    db = db_connect(db_name)
+    answ = User.get_by_id(user_id)[0].name
+    db.close()
+    return answ
+
+
+def get_friends(user_id, db_name: str = 'DB1'):
+    db = db_connect(db_name)
+    answ = Friends.select(Friends.friend_id).where(Friends.user_id == user_id)
+    db.close()
+    r_answ = []
+    for element in answ:
+        r_answ.append(r_answ[0].friend_id)
+    return answ
+
 
 def user_exist_name(name):
     db = db_connect()
@@ -228,13 +267,31 @@ def user_exist(user_id):
         db.close()
 
 
+def load_with_datetime(pairs, format='%Y-%m-%dT%H:%M:%S.%f'):
+    """Load with date and time"""
+    d = {}
+    for k, v in pairs:
+        if isinstance(v, str):
+            try:
+                d[k] = datetime.strptime(v, format).date()
+            except ValueError:
+                d[k] = v
+        else:
+            d[k] = v
+    return d
 
-def get_followed_updated_tweets(followed):
-    followed_tweets = Tweet.Select().where(Tweet.ret_user_id.in_(followed))
+
+def json_serial(obj):
+    """JSON serializer for objects not serializable by default json code"""
+    try:
+        if isinstance(obj, (datetime, datetime.date)):
+            return obj.isoformat()
+        raise TypeError("Type %s not serializable" % type(obj))
+    except:
+        pass
 
 
-
-def export_models_to_json(model:Model):
+def export_models_to_json(model: Model):
     return json.dumps([model], default=json_serial)
 
 
@@ -260,8 +317,6 @@ def load_json_to_database(json_string, db_name='DB1', tables=None):
                 tables[count].insert_many(element[idx:idx + 100]).on_conflict_ignore().execute()
             count += 1
     db.close()
-
-
 
 
 create_db()
