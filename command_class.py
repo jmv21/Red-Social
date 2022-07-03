@@ -8,7 +8,7 @@ class Command:
     cm_args = []
 
     
-    def __init__(self,string_comand:str , args: list[str]) -> None:
+    def __init__(self,string_comand:str , args) -> None:
         self.cm_name = self.CheckNames(string_comand)
         self.cm_args = self.CheckArgs(self.cm_name,args)
         print()
@@ -47,7 +47,7 @@ class Command:
         raise Exception("Sorry,command not detected")
     
     
-    def CheckArgs(self,string_comand:str, args: list[str]) -> list[str]:
+    def CheckArgs(self,string_comand:str, args):
     
         if(string_comand == 'help'):
             return [] 
