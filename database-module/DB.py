@@ -137,11 +137,11 @@ def user_login(name, password, user_id=None, db_name: str = 'DB1'):
             return False
 
     if len(user) < 0:
-        return (False, 0)
+        return (False, '0')
     passw = cryptocode.decrypt(user[0].passw, password)
 
     if passw is False:
-        return (False, 0)
+        return (False, '0')
 
     tok = cryptocode.decrypt(user[0].token, password)
 
