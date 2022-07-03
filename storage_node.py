@@ -5,10 +5,16 @@ import hashlib
 #from utils import requester
 from time import time
 import threading
+from os.path import abspath, exists
+from unicodedata import name
+from uuid import uuid4
+import uuid
 
 from grpc import StatusCode, insecure_channel
 import grpc
-from gRPC.chord_pb2 import Feature, Storage_make_data, Address, Address_list
+
+from gRPC.chord_pb2 import Addr_id, Feature, Storage_make_data, Address, Address_list
+
 from storage_grpc.storage_pb2 import Address_listS, AddressS
 import storage_grpc.storage_pb2_grpc
 from chord_node import make_stub_chord
@@ -56,21 +62,48 @@ def unpack_posible_nones(storage_nodes):
     return node_list
 
 
+def define_ranges(K, max, min):
+    amount_per_range = int(max/K)
+    current_min = min
+    ranges_list = []
+    for _ in range(K-1):
+        ranges_list.append((current_min, current_min+amount_per_range))
+        current_min = current_min+amount_per_range
+    ranges_list.append((current_min, max))
+
+    return ranges_list
+
 class StorageNode:
     def __init__(self, addr, K, index, storage_nodes = None, vocal_option = False):
-        db = DB.create_db()
-        print("did create db")
+        #print("hi")
+        # define domain ranges
+        self.max_id = pow(2, 64) -1
+        self.ranges_list = define_ranges(K, self.max_id, 0)
+        self.index = index
+        #print(self.ranges_list[self.index])
+        # main databases and backups databases paths
+        self.db_name = 'DB{}'.format(self.index)
+        self.db_path = None
+        # BU1 is predecessor backup
+        self.b1_name = 'BU1'
+        self.b1_path = None
+        # BU2 is successor backup
+        self.b2_name = 'BU2'
+        self.b2_path = None
+
+        # chord and self ip addresses and ports
+
         self.addr = addr
         self.port = addr.split(":")[1]
         self.ip = addr.split(":")[0]
 
         self.chord_addr = addr
-        self.client_addr = self.ip + ":{}".format(int(self.port)+1)
+        #self.client_addr = self.ip + ":{}".format(int(self.port)+1)
         self.port = "{}".format(int(self.port)+2)
         self.addr = self.ip +":"+ self.port
         
 
-        self.index = index
+
         
         self.vocal_option = vocal_option
         self.id = 0   
@@ -79,19 +112,35 @@ class StorageNode:
         #self.sock_rep.bind("tcp://" + self.addr)  
 
 
+        self._first_K = False
         self.total_storage_nodes = K
-        if storage_nodes is None:        
+        # If this is the first storage node
+        if storage_nodes is None:
+            print("making db")        
             self.storage_nodes = [None for _ in range(self.total_storage_nodes)]
             self.storage_nodes[self.index] = (self.id, self.addr)
+            # NAME + INDEX     ID
+            self._first_K = True
+            
         else: 
             self.storage_nodes = unpack_posible_nones(storage_nodes)
+
+            self._first_K = None in self.storage_nodes
+                
             self.storage_nodes[self.index] = (self.id, self.addr)
             self.send_updated_node_list()
-        
+            # THEN ASK FOR STORAGE NODES
 
+        
+        #if self._first_K:
+            #DB.create_db(name=self.db_name)
+            #self.db_path = abspath(self.db_name)
+            #print("created {}".format(self.db_name))
         #local_requester = requester(context = self.context_sender, vocal_option = True)
         
-        self.waiting_time = 30
+
+        self.waiting_time = 20
+
         
 
         self.commands = {"ALIVE": self.alive, "UPDATE_LIST": self.update_node_list}      
@@ -112,6 +161,10 @@ class StorageNode:
         #self.waiting_for_command()
         
 
+        #self.check_on_databases()
+        #self.thr_check_db = threading.Thread(target = self.check_on_databases, args=())
+        #self.thr_check_db.start()
+        print("started_check_db")
 
     
 
@@ -125,7 +178,29 @@ class StorageNode:
         print("started server")
         server.wait_for_termination()
 
-    
+    def check_on_databases(self):
+        print("cheking db")
+        countdown = time()
+        waiting_time = 10
+        jobs = 3
+        while True:
+            if abs (countdown - time() ) > waiting_time:
+                if (self.db_path is None or not exists(self.db_path)) and not self._first_K:
+                    print("cheking 1")
+                    if self.ask_for_db_file():
+                        jobs -= 1
+                #print(self.b1_path is None)
+                if self.b1_path is None or not exists(self.b1_path):
+                    print("cheking 2")
+                    if self.ask_for_first_backup():
+                        jobs -= 1
+                if self.b2_path is None or not exists(self.b2_path):
+                    print("cheking 3")
+                    if self.ask_for_second_backup():
+                        jobs -= 1
+                if jobs <= 0:
+                    break
+                countdown = time()
 
     def wrapper_check_on_succ(self):
         countdown = time()
@@ -135,8 +210,10 @@ class StorageNode:
             if abs (countdown - time( ) ) > self.waiting_time:
                 #SEND UPDATED LIST 
                 self.check_on_succ()
+
                 countdown = time()
 
+    
 
     def check_on_succ(self):
         # JUST FOR NOW
@@ -149,6 +226,7 @@ class StorageNode:
             #recv_json = local_requester.make_request(json_to_send = {"command_name" : "ALIVE", "method_params" : {}, "procedence_addr" : self.addr}, destination_id = self.storage_nodes[index_check][0], destination_addr = self.storage_nodes[index_check][1])
             stub = make_stub_stor(self.storage_nodes[index_check][1])
 
+
             try:
                 resp = stub.Alive(Feature(name="REQ"))
             except grpc.RpcError as e:
@@ -158,29 +236,8 @@ class StorageNode:
 
             else: 
                 print("{} is Cool".format(self.storage_nodes[index_check][1]))
-                try:
-                    file = stub.Ask_for_file(Feature(name="REQ"))
-                    #print("now printing file")
-                    #for data in file:
-                        #print(data.data)
-                    #print(file.data)
-                    with open('DB2', 'wb') as new_file:
-                        bytelist = []
-                        for data in file:
-                        #print(data.data)
-                            bytelist.append(data.data)
-                            new_file.write(data.data)
-                        #json_str = ''.join(bytelist)#.decode('utf-8')
-                        #print("json_string")
-                        #print(json_str)
-                        self.print_file()
-                    
-                    #DB.load_json_to_database()
-                    #DB.db_connect('DB2')
-                except grpc.RpcError as e:
-                    print("fail to ask for file")
-                    print(e.code())
-                    print(e.details())
+
+
             
         else:
             print("request creation") 
@@ -260,8 +317,100 @@ class StorageNode:
         return DB.export_databse_to_json(name)
 
 
-    def print_file(self):
-        print("printing created file")
-        with open('DB2', 'rb') as file:
-            print(file.read())
-        DB.test()
+
+    #def print_file(self, name):
+    #    print("printing created file")
+    #    with open(name, 'rb') as file:
+    #        print(file.read())
+        #DB.test()
+
+    def ask_for_db_file(self):
+        print("ask for my db")
+        index_check = self.index-1
+        if self.index == 0:
+            index_check = self.total_storage_nodes -1
+
+        if self.storage_nodes[index_check] is not None:
+            stub = make_stub_stor(self.storage_nodes[index_check][1])
+            try:
+                file = stub.Ask_for_file(Feature(name='DB{}'.format(index_check)))
+                with open('DB{}'.format(self.index), 'wb') as new_file:
+                    for data in file:
+                        new_file.write(data.data)
+                print(exists('DB{}'.format(self.index)))
+                self.db_path = abspath('DB{}'.format(self.index))
+                return True
+            except grpc.RpcError as e:
+                print("fail asking for DB file")
+                return False
+        print("fail asking for BU2 file")
+        return False
+
+                    
+
+    def ask_for_first_backup(self):
+        print("entered back up 1")
+        index_check = self.index-1
+        if self.index == 0:
+            index_check = self.total_storage_nodes -1
+
+        if self.storage_nodes[index_check] is not None:
+            stub = make_stub_stor(self.storage_nodes[index_check][1])
+            try:
+                file = stub.Ask_for_file(Feature(name='DB{}'.format(index_check)))
+                with open('BU1'.format(self.index), 'wb') as new_file:
+                    for data in file:
+                        new_file.write(data.data)
+                print('BU1 exist')
+                print(exists('BU1'))
+                #self.print_file('BU2')
+                self.b1_path = abspath('BU1')
+                print("existe el absolute path {}".format(exists(self.b1_path)))
+                return True
+            except grpc.RpcError as e:
+                print("fail asking for BU1 file")
+                return False
+        print("fail asking for BU2 file")
+        return False
+
+    def ask_for_second_backup(self):
+        print("entered back up 2")
+        index_check = self.index+1
+        if self.index == self.total_storage_nodes -1:
+            index_check = 0
+
+        if self.storage_nodes[index_check] is not None:
+            stub = make_stub_stor(self.storage_nodes[index_check][1])
+            try:
+                file = stub.Ask_for_file(Feature(name='DB{}'.format(index_check)))
+                with open('BU2'.format(self.index), 'wb') as new_file:
+                    for data in file:
+                        new_file.write(data.data)
+                print("BU2 exist")
+                print(exists('BU2'))
+                #self.print_file('BU2')
+                self.b2_path = abspath('BU2')
+                print("existe el absolute path {}".format(exists(self.b2_path)))
+                return True
+            except grpc.RpcError as e:
+                print("fail asking for BU2 file")
+                return False
+        print("fail asking for BU2 file")
+        return False
+    
+    def contains(self, id):
+        
+        return self.ranges_list[self.index][0] <= id < self.ranges_list[self.index][1]
+
+    def name_exist(self, name):
+        res = DB.user_exist_name(name)
+        return res
+    
+    def register(self, name, password, id):
+        res = DB.execute_order([0, name, password, id])
+        return res
+    
+    def login(self, name, password, id):
+        res = DB.execute_order([1, name, password])#, id])
+        return res
+

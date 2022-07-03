@@ -92,4 +92,16 @@ class ChordServicer(gRPC.chord_pb2_grpc.RouteGuideServicer):
         self.chord_node.remove_storage()
         return Feature(name="ACK")
 
+    # FIRST REQUEST MUST HAVE ADDR NONE
+    def Get_storage_by_id(self, request, context):
+        print("entered baby")
+        addr_i = request.addr
+        if request.addr == '0':
+            addr_i = None 
+
+        addr, id = self.chord_node.get_storage_by_id(int(request.value), addr_i)
+        print("returning")
+        return Address(value=0,addr=addr)
+
+
 

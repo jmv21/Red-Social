@@ -16,6 +16,7 @@ class color:
 
 def main():
     
+
     Flags_Dict = {'user':''}
     print()
     print(color.BLUE + "WELCOME TO TWISTTER, OUR SOCIAL NETWORK."+ color.END)
@@ -33,7 +34,7 @@ def main():
 
         if Flags_Dict['correct_comd']:
             command.Execute(command.cm_name)
-            
+
             pass
         else:
             continue
@@ -79,6 +80,7 @@ def CleanCommand(full_string_comd: str ,Flags_Dict: dict ) -> Command:
         return
     
     Flags_Dict['correct_comd'] =True
+
     return full_command
 
 

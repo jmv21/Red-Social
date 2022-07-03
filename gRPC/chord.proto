@@ -55,6 +55,10 @@ service RouteGuide {
 
   rpc Remove_storage(Feature) returns (Feature) {}
 
+  rpc Get_storage_by_id(Addr_id) returns (Address) {}
+
+
+
 }
 
 
@@ -92,11 +96,19 @@ message Storage {
   bool error = 4;
 }
 
+
+
 message Storage_make_data {
     int32 K = 1;
     int32 index = 2;
     Address_list nodes = 3;
 
+}
+
+message Addr_id {
+
+  string value = 1;
+  string addr = 2;
 }
 
 // A RouteSummary is received in response to a RecordRoute rpc.
