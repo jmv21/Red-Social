@@ -107,13 +107,13 @@ def token_creation(id: int, passw):
     return tok_encoded
 
 
-def user_register(name, password: str):
+def user_register(name, password: str, id:int):
     db = db_connect()
     user = User.select().where(User.name == name)
     if (len(user) > 0):
         return False
     new_passw = cryptocode.encrypt(secrets.token_urlsafe(20), password)
-    User.create(name=name, passw=new_passw, token=secrets.token_urlsafe(5), encK=secrets.token_urlsafe(5))
+    User.create(id = id, name=name, passw=new_passw, token=secrets.token_urlsafe(5), encK=secrets.token_urlsafe(5))
     user = User.get(User.name == name)
     user[0].token = token_creation(user[0].id, str(user[0].id) + new_passw)
     user.save()
