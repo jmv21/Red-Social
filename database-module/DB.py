@@ -1,5 +1,6 @@
 import datetime
 import json
+from datetime import datetime
 
 from getmac import get_mac_address as gma
 
@@ -14,6 +15,8 @@ from Crypto.PublicKey import RSA
 from Crypto.Cipher import PKCS1_OAEP
 
 from playhouse.apsw_ext import *
+from playhouse.shortcuts import model_to_dict
+from playhouse.sqlite_ext import basestring
 
 db_proxy = DatabaseProxy()
 
@@ -28,15 +31,17 @@ class User(BaseModel):
     name = CharField()
     passw = TextField()
     token = TextField()
-    encK = CharField()
+    encK = CharField(null=True)
 
 
 class Tweet(BaseModel):
     content = CharField(null=False)
-    timestamp = DateTimeField(default=datetime.datetime.now, null=False)
+    timestamp = DateTimeField(default=datetime.now, null=False)
     likes = BigIntegerField(default=0, constraints=[Check('likes>=0')], null=False)
     user_id = ForeignKeyField(User, backref='tweets', constraints=[Check('user_id>=0')], null=False)
-    ret_id = IntegerField(null=True, default=None)
+    ret_id = IntegerField(null=True, default=0)
+    ret_user_id = ForeignKeyField(User, backref='tweets', constraints=[Check('user_id>=0')], default = 0)
+    ret_user_name = CharField(default=None)
 
 
 class Friends(BaseModel):
@@ -50,8 +55,8 @@ class Likes(BaseModel):
     user_id = ForeignKeyField(User, backref='tweets', constraints=[Check('user_id>=0')], null=False)
 
 
-def create_db(initial_id: int = 1):
-    db = APSWDatabase('DB1')
+def create_db(name: str = 'DB1', initial_id: int = 1):
+    db = APSWDatabase(name)
     db_proxy.initialize(db)
     db.connect()
     db.create_tables([User, Tweet, Friends, Likes])
@@ -108,7 +113,7 @@ def user_register(name, password: str):
     if (len(user) > 0):
         return False
     new_passw = cryptocode.encrypt(secrets.token_urlsafe(20), password)
-    User.create(name=name, passw=new_passw, token=secrets.token_urlsafe(5), enck=secrets.token_urlsafe(5))
+    User.create(name=name, passw=new_passw, token=secrets.token_urlsafe(5), encK=secrets.token_urlsafe(5))
     user = User.get(User.name == name)
     user[0].token = token_creation(user[0].id, str(user[0].id) + new_passw)
     user.save()
@@ -141,13 +146,6 @@ def user_login(name, password):
     return True
 
 
-def tweet(user_id: int, text, ret_id=0, db_name: str = 'DB1'):
-    db = db_connect(db_name)
-    user = User.filter(User.id == user_id)
-    Tweet.create(text=text, user_id=user[0].id, ret_id=ret_id)
-    db.close()
-
-
 def like(user_id, tweet_id, tweet_user_id, db_name: str = 'DB1'):
     db = db_connect(db_name)
     dislike = False
@@ -156,7 +154,8 @@ def like(user_id, tweet_id, tweet_user_id, db_name: str = 'DB1'):
         dislike = True
     try:
         tweet = Tweet.get(Tweet.id == tweet_id and Tweet.user_id == user_id)
-        Tweet.update(likes=Tweet.likes + 1 if not dislike else -1).where(Tweet.id == tweet_id and Tweet.user_id == user_id).execute()
+        Tweet.update(likes=Tweet.likes + 1 if not dislike else -1).where(
+            Tweet.id == tweet_id and Tweet.user_id == user_id).execute()
     except:
         return False
     db.close()
@@ -166,14 +165,102 @@ def like(user_id, tweet_id, tweet_user_id, db_name: str = 'DB1'):
 def execute_order(json_file):
     json_f = json.load(json_file)
     order = json_f[0]
-    if order is 0:
+    if order == 0:
         return user_register(json_f[1], json_f[2])
 
-    if order is 1:
+    if order == 1:
         return user_login(json_f[1], json_f[2])
 
-    if order is 2:
+    if order == 2:
         return tweet(json_f[1], json_f[2], json_f[3])
 
 
-create_db(2000)
+def tweet(user_id: int, text, ret_id=0, db_name: str = 'DB1'):
+    db = db_connect(db_name)
+    user = User.filter(User.id == user_id)
+    Tweet.create(content=text, user_id=user[0].id, ret_id=ret_id)
+    db.close()
+
+
+def load_with_datetime(pairs, format='%Y-%m-%dT%H:%M:%S.%f'):
+    """Load with dates"""
+    d = {}
+    for k, v in pairs:
+        if isinstance(v, str):
+            try:
+                d[k] = datetime.strptime(v, format).date()
+            except ValueError:
+                d[k] = v
+        else:
+            d[k] = v
+    return d
+
+
+def json_serial(obj):
+    """JSON serializer for objects not serializable by default json code"""
+    try:
+        if isinstance(obj, (datetime, datetime.date)):
+            return obj.isoformat()
+        raise TypeError("Type %s not serializable" % type(obj))
+    except:
+        pass
+
+def user_exist_name(name):
+    db = db_connect()
+    try:
+        User.get(name == name)
+        return True
+    except:
+        return False
+    finally:
+        db.close()
+
+
+def user_exist(user_id):
+    db = db_connect()
+    try:
+        User.get_by_id(user_id)
+        return True
+    except:
+        return False
+    finally:
+        db.close()
+
+
+
+def get_followed_updated_tweets(followed):
+    followed_tweets = Tweet.Select().where(Tweet.ret_user_id.in_(followed))
+
+
+
+def export_models_to_json(model:Model):
+    return json.dumps([model], default=json_serial)
+
+
+def export_databse_to_json(db_name='DB1'):
+    db = db_connect(db_name)
+    user = list(User.select().dicts())
+    tweet_ = list(Tweet.select().dicts())
+    friends_ = list(Friends.select().dicts())
+    likes_ = list(Likes.select().dicts())
+    db.close()
+
+    return json.dumps([user, tweet_, friends_, likes_], default=json_serial)
+
+
+def load_json_to_database(json_string, db_name='DB1', tables=None):
+    arra = json.loads(json_string, object_pairs_hook=load_with_datetime)
+    db = db_connect(db_name)
+    tables = [User, Tweet, Friends, Likes] if tables is None else tables
+    count = 0
+    with db.atomic():
+        for element in arra:
+            for idx in range(0, len(element), 100):
+                tables[count].insert_many(element[idx:idx + 100]).on_conflict_ignore().execute()
+            count += 1
+    db.close()
+
+
+
+
+create_db()
