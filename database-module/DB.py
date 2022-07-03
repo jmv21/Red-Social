@@ -105,6 +105,14 @@ def token_creation(id: int, passw):
     tok_encoded = cryptocode.encrypt(token, passw)
     return tok_encoded
 
+def check_token(user_id, token,  db_name: str = 'DB1'):
+    db = db_connect(db_name)
+    user = User.get_by_id(user_id)
+    enck = cryptocode.decrypt(user.encK, token)
+    db.close()
+    return enck
+
+
 
 def user_register(name, password: str, user_id: int, db_name: str = 'DB1'):
     db = db_connect(db_name)
