@@ -30,6 +30,21 @@ class StorageServicerStub(object):
                 request_serializer=storage__pb2.FeatureS.SerializeToString,
                 response_deserializer=storage__pb2.DataS.FromString,
                 )
+        self.Ask_if_name_belongs = channel.unary_unary(
+                '/routeguide.StorageServicer/Ask_if_name_belongs',
+                request_serializer=storage__pb2.FeatureS.SerializeToString,
+                response_deserializer=storage__pb2.Bool.FromString,
+                )
+        self.Register_user = channel.unary_unary(
+                '/routeguide.StorageServicer/Register_user',
+                request_serializer=storage__pb2.User_data.SerializeToString,
+                response_deserializer=storage__pb2.Bool.FromString,
+                )
+        self.Login_user = channel.unary_unary(
+                '/routeguide.StorageServicer/Login_user',
+                request_serializer=storage__pb2.User_data.SerializeToString,
+                response_deserializer=storage__pb2.Log_token.FromString,
+                )
 
 
 class StorageServicerServicer(object):
@@ -55,6 +70,24 @@ class StorageServicerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def Ask_if_name_belongs(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def Register_user(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def Login_user(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_StorageServicerServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -72,6 +105,21 @@ def add_StorageServicerServicer_to_server(servicer, server):
                     servicer.Ask_for_file,
                     request_deserializer=storage__pb2.FeatureS.FromString,
                     response_serializer=storage__pb2.DataS.SerializeToString,
+            ),
+            'Ask_if_name_belongs': grpc.unary_unary_rpc_method_handler(
+                    servicer.Ask_if_name_belongs,
+                    request_deserializer=storage__pb2.FeatureS.FromString,
+                    response_serializer=storage__pb2.Bool.SerializeToString,
+            ),
+            'Register_user': grpc.unary_unary_rpc_method_handler(
+                    servicer.Register_user,
+                    request_deserializer=storage__pb2.User_data.FromString,
+                    response_serializer=storage__pb2.Bool.SerializeToString,
+            ),
+            'Login_user': grpc.unary_unary_rpc_method_handler(
+                    servicer.Login_user,
+                    request_deserializer=storage__pb2.User_data.FromString,
+                    response_serializer=storage__pb2.Log_token.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -132,5 +180,56 @@ class StorageServicer(object):
         return grpc.experimental.unary_stream(request, target, '/routeguide.StorageServicer/Ask_for_file',
             storage__pb2.FeatureS.SerializeToString,
             storage__pb2.DataS.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def Ask_if_name_belongs(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/routeguide.StorageServicer/Ask_if_name_belongs',
+            storage__pb2.FeatureS.SerializeToString,
+            storage__pb2.Bool.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def Register_user(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/routeguide.StorageServicer/Register_user',
+            storage__pb2.User_data.SerializeToString,
+            storage__pb2.Bool.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def Login_user(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/routeguide.StorageServicer/Login_user',
+            storage__pb2.User_data.SerializeToString,
+            storage__pb2.Log_token.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)

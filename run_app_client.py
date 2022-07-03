@@ -16,7 +16,8 @@ class color:
 
 def main():
     
-    Flags_Dict = {'user':'','user_logged': False}
+
+    Flags_Dict = {'user':''}
     print()
     print(color.BLUE + "WELCOME TO TWISTTER, OUR SOCIAL NETWORK."+ color.END)
     print()
@@ -33,6 +34,7 @@ def main():
 
         if Flags_Dict['correct_comd']:
             command.Execute(command.cm_name)
+
             pass
         else:
             continue
@@ -69,24 +71,16 @@ def CleanCommand(full_string_comd: str ,Flags_Dict: dict ) -> Command:
     if len(comd) == 1: comd.append('')
     
     #Checking that the user is trying to log in or create an ccount
-    if not Flags_Dict['user_logged'] and comd[0] !='login' and comd[0] != 'createaccount':
+    if Flags_Dict['user'] == '' and comd[0] !='login' and comd[0] != 'createaccount':
         return
-    if not Flags_Dict['user_logged']: Flags_Dict['user'] = comd[1]
     
     
-    try :
-        args = comd[1:len(comd)]
-        args.append(Flags_Dict['user'])
-        full_command = Command(comd[0], args)
+    try :full_command = Command(comd[0], comd[1:len(comd) -1]) 
     except: 
-        if not Flags_Dict['user_logged']: Flags_Dict['user'] = ' '
         return
     
     Flags_Dict['correct_comd'] =True
-    if not Flags_Dict['user_logged']: Flags_Dict['user_logged'] = True
-    if full_command.cm_name == 'logout':
-        if Flags_Dict['user_logged']: Flags_Dict['user'] = ''
-        if Flags_Dict['user_logged']: Flags_Dict['user_logged'] = False
+
     return full_command
 
 

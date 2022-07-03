@@ -1,6 +1,10 @@
 from cmath import pi
+from distutils.log import error
 from hmac import digest_size
 import multiprocessing
+
+from operator import add
+
 import sys
 from typing import Mapping
 import grpc
@@ -8,7 +12,11 @@ import grpc
 from time import time
 import threading
 import hashlib
+
 from gRPC.chord_pb2 import  Address, Feature, Idvalue
+
+from gRPC.chord_pb2 import  Addr_id, Address, Feature, Idvalue
+
 from random import Random
 from functools import reduce
 from socket import gethostbyname, gethostname
@@ -443,10 +451,12 @@ class Node:
             stub = make_stub_chord(next_node_addr)
             try:
                 stor = stub.Get_storage(Address(value=0,addr=first_node_addr))
+                return stor.is_storage, stor.addr, stor.found, False
             except grpc.RpcError as e:
                 return False, None, False, True
-            else:
-                return stor.is_storage, stor.addr, stor.found, False
+
+            
+                
 
     def closest_non_storage_node(self, first_node_addr):
         ip, port = self.addr.split(":")[0], self.addr.split(":")[1]
@@ -481,10 +491,20 @@ class Node:
             stub = make_stub_chord(next_node_addr)
             try:
                 stor = stub.Get_non_storage(Address(value=0,addr=first_node_addr))
+                return stor.is_storage, stor.addr, stor.found, False
             except grpc.RpcError as e:
                 return False, None, False , True
-            else:
-                return stor.is_storage, stor.addr, stor.found, False
+
+
+    def make_storage(self, K, index, storage_nodes):
+        #self.sn_client.make_storage_wrapper(K, index, storage_nodes)
+        self.sn_client.make_storage_node(K, index, storage_nodes)
+        return
+
+    def remove_storage(self):
+
+        self.sn_client.remove_storage()
+   
 
     def make_storage(self, K, index, storage_nodes):
         #self.sn_client.make_storage_wrapper(K, index, storage_nodes)
@@ -495,3 +515,62 @@ class Node:
 
         self.sn_client.remove_storage()
 
+    def get_storage_by_id(self, id_to_find,first_node_addr):
+        ip, port = self.addr.split(":")[0], self.addr.split(":")[1]
+        port = int(port)
+        destination_addr = ip + ":{}".format(port)
+
+        
+        # TEST
+        #print("ask my node if storage")
+        #recv_json = sock_req.make_request(json_to_send = {"command_name" : "GET_IF_STORAGE", "method_params": {}, "procedence_addr": self.addr}, requester_object= self, asked_properties = None, destination_id = self.id, destination_addr = destination_addr ) 
+        is_storage = self.sn_client.is_storage()
+
+        if first_node_addr == self.succ_list[0][1]:
+            print('3')
+            return "error", self.id
+
+        print("llegue")
+        if is_storage:
+            print('1')
+            if self.sn_client.storage_contains(id_to_find):
+                print('2')
+                return destination_addr, self.id 
+            else:
+                next_node_id, next_node_addr = self.succ_list[0][0], self.succ_list[0][1]
+               
+                #recv_json = sock_req.make_request(json_to_send = {"command_name" : "GET_NON_STORAGE", "method_params" : { "response_addr": response_addr, "first_node_addr" : first_node_addr }, "procedence_addr": self.addr}, requester_object= self, asked_properties = None, destination_id = next_node_id, destination_addr = next_node_addr) 
+                stub = make_stub_chord(next_node_addr)
+                try:
+                    print('2a')
+                    addr = stub.Get_storage_by_id(Addr_id(value='{}'.format(id_to_find), addr=first_node_addr))
+                    print('3a')
+                    return addr.addr, addr.value
+
+                except grpc.RpcError as e:
+                    return "error", self.id
+
+        else:
+            if first_node_addr is None: first_node_addr = self.addr
+
+            if first_node_addr == self.succ_list[0][1]:
+                print('3')
+                return "error", self.id
+
+            # TEST
+            #print("ask next node if storage")
+            next_node_id, next_node_addr = self.succ_list[0][0], self.succ_list[0][1]
+            print('4')
+            #recv_json = sock_req.make_request(json_to_send = {"command_name" : "GET_NON_STORAGE", "method_params" : { "response_addr": response_addr, "first_node_addr" : first_node_addr }, "procedence_addr": self.addr}, requester_object= self, asked_properties = None, destination_id = next_node_id, destination_addr = next_node_addr) 
+            stub = make_stub_chord(next_node_addr)
+            try:
+                print("llegue2")
+                addr = stub.Get_storage_by_id(Addr_id(value='{}'.format(id_to_find), addr=first_node_addr))
+                print('5')
+                return addr.addr, addr.value
+
+            except grpc.RpcError as e:
+                return "error", self.id
+
+
+                

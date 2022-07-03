@@ -75,6 +75,11 @@ class RouteGuideStub(object):
                 request_serializer=chord__pb2.Feature.SerializeToString,
                 response_deserializer=chord__pb2.Feature.FromString,
                 )
+        self.Get_storage_by_id = channel.unary_unary(
+                '/routeguide.RouteGuide/Get_storage_by_id',
+                request_serializer=chord__pb2.Addr_id.SerializeToString,
+                response_deserializer=chord__pb2.Address.FromString,
+                )
 
 
 class RouteGuideServicer(object):
@@ -159,6 +164,12 @@ class RouteGuideServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def Get_storage_by_id(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_RouteGuideServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -221,6 +232,11 @@ def add_RouteGuideServicer_to_server(servicer, server):
                     servicer.Remove_storage,
                     request_deserializer=chord__pb2.Feature.FromString,
                     response_serializer=chord__pb2.Feature.SerializeToString,
+            ),
+            'Get_storage_by_id': grpc.unary_unary_rpc_method_handler(
+                    servicer.Get_storage_by_id,
+                    request_deserializer=chord__pb2.Addr_id.FromString,
+                    response_serializer=chord__pb2.Address.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -434,5 +450,22 @@ class RouteGuide(object):
         return grpc.experimental.unary_unary(request, target, '/routeguide.RouteGuide/Remove_storage',
             chord__pb2.Feature.SerializeToString,
             chord__pb2.Feature.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def Get_storage_by_id(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/routeguide.RouteGuide/Get_storage_by_id',
+            chord__pb2.Addr_id.SerializeToString,
+            chord__pb2.Address.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)

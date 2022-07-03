@@ -11,24 +11,37 @@ from time import time
 import storage_node
 import multiprocessing
 
+import netaddr
+import uuid
+
 
 
 
 
 
 class Client:
-    def __init__(self, ip_port, c_node, storage_node = None):
+    def __init__(self, ip_port, c_node, storage = None):
         #self.context = zmq.Context()
         #self.sock_req = self.context.socket(zmq.REP)
+        print("hi bro")
         self.c_node = c_node
         self.c_node.bind_client(self)
 
+
+
         self.ip_port = c_node.addr
         self._storage = False
-        if storage_node is not None: self._storage = True
-        self.storage_node = storage_node
+        if storage is not None: self._storage = True
+        self.storage_node = storage
 
-        if storage_node is not None:
+        K = 3
+        if ip_port == '172.17.0.2:8080':
+            print('first addr stor')
+            self._storage = True
+            self.storage_node = storage_node.StorageNode(ip_port, K, 0, storage_nodes=None, vocal_option=True)
+            
+
+        if storage is not None:
             print("I am first storage")
         
         
@@ -53,7 +66,7 @@ class Client:
             #thr_stabilize = threading.Thread(target = self.ask_myself, args =())
             #thr_stabilize.start()
         
-        self.c_node.bind_client(self)
+        #self.c_node.bind_client(self)
 
         self.send_info()
         
@@ -137,11 +150,19 @@ class Client:
 
     def remove_storage(self):
         print("removing storage")
+
         #Thread = self.storage_node.thr_wait_for_command
         self._stop_threads([self.storage_node.thr_wait_for_command, self.storage_node.thr_check_succ])
         #self.storage_node.thr_wait_for_command.terminate()
         #self.storage_node = None
         #self._storage = False
+
+        self._stop_threads([self.storage_node.thr_wait_for_command, self.storage_node.thr_check_succ])
+        
+    def storage_contains(self, id):
+        print("6")
+        return self.storage_node.contains(id)
+
         
         
       
@@ -181,7 +202,10 @@ if __name__ == "__main__":
         parser.error(error_message %("addr_known", args.addr_known))
     
 
+
+
     n = chord_node.Node(addr = args.addr_id, node_to_join = args.addr_known, vocal_option = args.v)
+
     if args.addr_id == '172.17.0.2:8080':
         print('first addr stor')
         sn = storage_node.StorageNode(args.addr_id, 2, 0, storage_nodes=None, vocal_option=True)
@@ -190,6 +214,14 @@ if __name__ == "__main__":
     
     cl = Client(None, n, storage_node=sn)
 
+    #if args.addr_id == '172.17.0.2:8080':
+        #print('first addr stor')
+        #sn = storage_node.StorageNode(args.addr_id, 2, 0, storage_nodes=None, vocal_option=True)
+    #else: sn = None
+    #sn = None
     
+    cl = Client(args.addr_id, n, None)
+
+
     
     

@@ -17,13 +17,14 @@ from array import array
 from concurrent import futures
 import logging
 import math
+import re
 import time
 from xml.etree.ElementTree import tostring
 
 import grpc
 
 
-from storage_grpc.storage_pb2 import  AddressS, Address_listS, DataS, FeatureS, StorageS
+from storage_grpc.storage_pb2 import  AddressS, Address_listS, Bool, DataS, FeatureS, Log_token, StorageS
 #import route_guide_pb2
 import storage_grpc.storage_pb2_grpc
 
@@ -48,14 +49,20 @@ class StorageServicer(storage_grpc.storage_pb2_grpc.StorageServicerServicer):
         return FeatureS(name="ACK")
 
     def Ask_for_file(self, request, context):
-        #file_name = self.storage_node.parse_to_json('DB1')
-        #print("first try")
-        #response = str(file_name).encode('utf-8')
-        #print("parsed")
-        #file_name = open('DB1', 'rb')
-        #response = file_name.read()
-        with open('DB1', 'rb') as content_file:
+        with open(request.name, 'rb') as content_file:
             content = content_file.read()
-        #yield my_generated_module_pb2.Response(data=content)
         response = DataS(data=content)
         yield response
+
+    def Ask_if_name_belongs(self, request, context):
+        res = self.storage_node.name_exist(request.name)
+        return Bool(b=res)
+    
+    def Register_user(self, request, context):
+        res = self.storage_node.register(self, request.name, request.password, request.value)
+        return Bool(b=res)
+
+    def Login_user(self, request, context):
+        res, token = self.storage_node.login(self, request.name, request.password, request.value)
+        return Log_token(b=res,token=token)
+    

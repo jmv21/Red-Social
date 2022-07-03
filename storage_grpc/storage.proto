@@ -18,10 +18,13 @@ service StorageServicer {
 
   rpc Ask_for_file(FeatureS) returns (stream DataS) {}
   
+  rpc Ask_if_name_belongs(FeatureS) returns (Bool) {}
+
+  rpc Register_user(User_data) returns (Bool) {}
+
+  rpc Login_user(User_data) returns (Log_token) {}
 
 }
-
-
 
 
 // A feature names something at a given point.
@@ -60,4 +63,20 @@ message DataS {
   bytes data = 1;
 }
 
+message Bool {
 
+  bool b = 1;
+}
+
+message User_data {
+
+  string name = 1;
+  string password = 2;
+  int64 value = 3;
+}
+
+message Log_token {
+
+  bool b = 1;
+  string token = 2;
+}

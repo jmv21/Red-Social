@@ -1,4 +1,6 @@
-from numpy import str_
+
+#from numpy import str_
+
 
 
 class Command:
@@ -8,10 +10,12 @@ class Command:
     cm_args = []
 
     
-    def __init__(self,string_comand:str , args: list[str]) -> None:
-        self.cm_name = self.CheckNames(string_comand)
-        self.cm_args = self.CheckArgs(self.cm_name,args)
-        print()
+
+    def __init__(self,string_comand:str , args) -> None:
+        cm_name = self.CheckNames(string_comand)
+        cm_args = self
+        pass
+
     
     def CheckNames(self,string_comand:str) -> str:
         
@@ -47,34 +51,35 @@ class Command:
         raise Exception("Sorry,command not detected")
     
     
-    def CheckArgs(self,string_comand:str, args: list[str]) -> list[str]:
+
+    def CheckArgs(self,string_comand:str, args):
+
     
         if(string_comand == 'help'):
             return [] 
-        elif(string_comand == 'login'): 
-            return args[0:3]
         elif(string_comand == 'logout'):
-            return args[0:1]
+            return []
         elif(string_comand == 'random'):
-            return args[0:1]
+            return []
         elif(string_comand == 'update'):
-            return args[0:1] 
+            return string_comand 
         elif(string_comand == 'like'):
-            return args[0:2] 
+            return string_comand 
         elif(string_comand == 'comment'):
-            return args[0:3]  
+            return string_comand 
         elif(string_comand == 'retweet'):
-            return args[0:3]
+            return string_comand 
         elif(string_comand == 'lookuser'):
-            return args[0:2]
+            return string_comand 
         elif(string_comand == 'looktweet'):
-            return args[0:2]
+            return string_comand 
         elif(string_comand == 'followuser'):
-            return args[0:2]
+            return string_comand 
         elif(string_comand == 'info'):
-            return args[0:2]
+            return string_comand 
         elif(string_comand == 'createaccount'):
-            return args[0:3]
+            return string_comand 
+
     
         print("\n Sorry,the command "+string_comand+" does not expected does arguments")
         raise Exception("Sorry,wrong arguments")
@@ -156,6 +161,4 @@ class Command:
     ###self.args[0] = username , self.args[1] = password
     def Execute(self, command = 'createaccount'):
         pass
-
-    
 

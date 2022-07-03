@@ -14,7 +14,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\rstorage.proto\x12\nrouteguide\"\x18\n\x08\x46\x65\x61tureS\x12\x0c\n\x04name\x18\x01 \x01(\t\"\x19\n\x08IdvalueS\x12\r\n\x05value\x18\x01 \x01(\x03\"\'\n\x08\x41\x64\x64ressS\x12\r\n\x05value\x18\x01 \x01(\x03\x12\x0c\n\x04\x61\x64\x64r\x18\x02 \x01(\t\"5\n\rAddress_listS\x12$\n\x06values\x18\x01 \x03(\x0b\x32\x14.routeguide.AddressS\";\n\x08StorageS\x12\x0c\n\x04\x61\x64\x64r\x18\x01 \x01(\t\x12\x12\n\nis_storage\x18\x02 \x01(\x08\x12\r\n\x05\x66ound\x18\x03 \x01(\x08\"\x15\n\x05\x44\x61taS\x12\x0c\n\x04\x64\x61ta\x18\x01 \x01(\x0c\x32\xc7\x01\n\x0fStorageServicer\x12\x35\n\x05\x41live\x12\x14.routeguide.FeatureS\x1a\x14.routeguide.FeatureS\"\x00\x12@\n\x0bUpdate_list\x12\x19.routeguide.Address_listS\x1a\x14.routeguide.FeatureS\"\x00\x12;\n\x0c\x41sk_for_file\x12\x14.routeguide.FeatureS\x1a\x11.routeguide.DataS\"\x00\x30\x01\x42\x36\n\x1bio.grpc.examples.routeguideB\x0fRouteGuideProtoP\x01\xa2\x02\x03RTGb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\rstorage.proto\x12\nrouteguide\"\x18\n\x08\x46\x65\x61tureS\x12\x0c\n\x04name\x18\x01 \x01(\t\"\x19\n\x08IdvalueS\x12\r\n\x05value\x18\x01 \x01(\x03\"\'\n\x08\x41\x64\x64ressS\x12\r\n\x05value\x18\x01 \x01(\x03\x12\x0c\n\x04\x61\x64\x64r\x18\x02 \x01(\t\"5\n\rAddress_listS\x12$\n\x06values\x18\x01 \x03(\x0b\x32\x14.routeguide.AddressS\";\n\x08StorageS\x12\x0c\n\x04\x61\x64\x64r\x18\x01 \x01(\t\x12\x12\n\nis_storage\x18\x02 \x01(\x08\x12\r\n\x05\x66ound\x18\x03 \x01(\x08\"\x15\n\x05\x44\x61taS\x12\x0c\n\x04\x64\x61ta\x18\x01 \x01(\x0c\"\x11\n\x04\x42ool\x12\t\n\x01\x62\x18\x01 \x01(\x08\":\n\tUser_data\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x10\n\x08password\x18\x02 \x01(\t\x12\r\n\x05value\x18\x03 \x01(\x03\"%\n\tLog_token\x12\t\n\x01\x62\x18\x01 \x01(\x08\x12\r\n\x05token\x18\x02 \x01(\t2\x82\x03\n\x0fStorageServicer\x12\x35\n\x05\x41live\x12\x14.routeguide.FeatureS\x1a\x14.routeguide.FeatureS\"\x00\x12@\n\x0bUpdate_list\x12\x19.routeguide.Address_listS\x1a\x14.routeguide.FeatureS\"\x00\x12;\n\x0c\x41sk_for_file\x12\x14.routeguide.FeatureS\x1a\x11.routeguide.DataS\"\x00\x30\x01\x12?\n\x13\x41sk_if_name_belongs\x12\x14.routeguide.FeatureS\x1a\x10.routeguide.Bool\"\x00\x12:\n\rRegister_user\x12\x15.routeguide.User_data\x1a\x10.routeguide.Bool\"\x00\x12<\n\nLogin_user\x12\x15.routeguide.User_data\x1a\x15.routeguide.Log_token\"\x00\x42\x36\n\x1bio.grpc.examples.routeguideB\x0fRouteGuideProtoP\x01\xa2\x02\x03RTGb\x06proto3')
 
 
 
@@ -24,6 +24,9 @@ _ADDRESSS = DESCRIPTOR.message_types_by_name['AddressS']
 _ADDRESS_LISTS = DESCRIPTOR.message_types_by_name['Address_listS']
 _STORAGES = DESCRIPTOR.message_types_by_name['StorageS']
 _DATAS = DESCRIPTOR.message_types_by_name['DataS']
+_BOOL = DESCRIPTOR.message_types_by_name['Bool']
+_USER_DATA = DESCRIPTOR.message_types_by_name['User_data']
+_LOG_TOKEN = DESCRIPTOR.message_types_by_name['Log_token']
 FeatureS = _reflection.GeneratedProtocolMessageType('FeatureS', (_message.Message,), {
   'DESCRIPTOR' : _FEATURES,
   '__module__' : 'storage_pb2'
@@ -66,6 +69,27 @@ DataS = _reflection.GeneratedProtocolMessageType('DataS', (_message.Message,), {
   })
 _sym_db.RegisterMessage(DataS)
 
+Bool = _reflection.GeneratedProtocolMessageType('Bool', (_message.Message,), {
+  'DESCRIPTOR' : _BOOL,
+  '__module__' : 'storage_pb2'
+  # @@protoc_insertion_point(class_scope:routeguide.Bool)
+  })
+_sym_db.RegisterMessage(Bool)
+
+User_data = _reflection.GeneratedProtocolMessageType('User_data', (_message.Message,), {
+  'DESCRIPTOR' : _USER_DATA,
+  '__module__' : 'storage_pb2'
+  # @@protoc_insertion_point(class_scope:routeguide.User_data)
+  })
+_sym_db.RegisterMessage(User_data)
+
+Log_token = _reflection.GeneratedProtocolMessageType('Log_token', (_message.Message,), {
+  'DESCRIPTOR' : _LOG_TOKEN,
+  '__module__' : 'storage_pb2'
+  # @@protoc_insertion_point(class_scope:routeguide.Log_token)
+  })
+_sym_db.RegisterMessage(Log_token)
+
 _STORAGESERVICER = DESCRIPTOR.services_by_name['StorageServicer']
 if _descriptor._USE_C_DESCRIPTORS == False:
 
@@ -83,6 +107,12 @@ if _descriptor._USE_C_DESCRIPTORS == False:
   _STORAGES._serialized_end=237
   _DATAS._serialized_start=239
   _DATAS._serialized_end=260
-  _STORAGESERVICER._serialized_start=263
-  _STORAGESERVICER._serialized_end=462
+  _BOOL._serialized_start=262
+  _BOOL._serialized_end=279
+  _USER_DATA._serialized_start=281
+  _USER_DATA._serialized_end=339
+  _LOG_TOKEN._serialized_start=341
+  _LOG_TOKEN._serialized_end=378
+  _STORAGESERVICER._serialized_start=381
+  _STORAGESERVICER._serialized_end=767
 # @@protoc_insertion_point(module_scope)
