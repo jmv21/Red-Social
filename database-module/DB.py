@@ -319,4 +319,3 @@ def load_json_to_database(json_string, db_name='DB1', tables=None):
     db.close()
 
 
-create_db()
