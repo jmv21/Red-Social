@@ -110,18 +110,18 @@ def user_register(name, password: str, user_id: int, db_name: str = 'DB1'):
     db = db_connect(db_name)
     user = User.select().where(User.name == name)
     if (len(user) > 0):
-        return False
+        return False, '0'
     new_passw = cryptocode.encrypt(secrets.token_urlsafe(20), password)
     User.create(id=user_id, name=name, passw=new_passw, token=secrets.token_urlsafe(5), encK=secrets.token_urlsafe(5))
     user = User.get(User.name == name)
     user.token = token_creation(user.id, str(user.id) + new_passw)
     user.save()
-    a = cryptocode.decrypt(user.token, str(user.id) + new_passw)
+    tok = cryptocode.decrypt(user.token, str(user.id) + new_passw)
     user.encK = cryptocode.encrypt(user.encK,
                                    cryptocode.decrypt(user.token, str(user.id) + new_passw))
     user.save()
     db.close()
-    return True
+    return True, tok
 
 
 def user_login(name, password, user_id=None, db_name: str = 'DB1'):
