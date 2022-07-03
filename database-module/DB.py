@@ -166,7 +166,7 @@ def execute_order(json_file):
     json_f = json.load(json_file)
     order = json_f[0]
     if order == 0:
-        return user_register(json_f[1], json_f[2])
+        return user_register(json_f[1], json_f[2], json_f[3])
 
     if order == 1:
         return user_login(json_f[1], json_f[2])
