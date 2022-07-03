@@ -128,22 +128,23 @@ def user_login(name, password):
     db = db_connect()
     user = User.select().where(User.name == name)
     if len(user) < 0:
-        return False
+        return (False,0)
     passw = cryptocode.decrypt(user[0].passw, password)
 
     if passw is False:
-        return False
+        return (False, 0)
 
     tok = cryptocode.decrypt(user[0].token, password)
 
     if tok is False:
-        user[0].token = token_creation(user[0].id, str(user[0].id + passw))
+        tok = token_creation(user[0].id, str(user[0].id + passw))
+        user[0].token = tok
         user[0].encK = cryptocode.encrypt(user[0].encK,
                                           cryptocode.decrypt(str(user[0].id) + user[0].token, str(user[0].id + passw)))
 
     db.close()
 
-    return True
+    return (True, tok)
 
 
 def like(user_id, tweet_id, tweet_user_id, db_name: str = 'DB1'):
