@@ -16,14 +16,29 @@ service StorageServicer {
   
   rpc Update_list(Address_listS) returns (FeatureS) {}
 
+  rpc Get_stor_nodes(FeatureS) returns (Address_listS) {}
+
   rpc Ask_for_file(FeatureS) returns (stream DataS) {}
   
   rpc Ask_if_name_belongs(FeatureS) returns (Bool) {}
 
-  rpc Register_user(User_data) returns (Bool) {}
+  rpc Register_user(User_data) returns (Log_token) {}
 
   rpc Login_user(User_data) returns (Log_token) {}
 
+  rpc Random_n(IdvalueS) returns (stream DataS) {}
+
+  rpc Get_following(IdvalueS) returns (Id_list) {} 
+
+  rpc Followed_tweets(Id_list) returns (stream DataS) {}
+
+  rpc Tweet(AddressS) returns (FeatureS) {}
+
+  rpc Retweet(Comment_info) returns (FeatureS) {}
+
+  rpc Follow (Follow_info) returns (FeatureS) {}
+
+  rpc Comment (Comment_info) returns (FeatureS) {}
 }
 
 
@@ -79,4 +94,33 @@ message Log_token {
 
   bool b = 1;
   string token = 2;
+  int64 value = 3;
+}
+
+message Id_list {
+
+  int64 values = 1;
+}
+
+message Retweet_info {
+
+  int64 user_value = 1;
+  int64 tweet_value = 2;
+  int64 ret_user_value = 3;
+  string ret_user_name = 4;
+}
+
+message Comment_info {
+
+  int64 user_value = 1;
+  int64 tweet_value = 2;
+  int64 ret_user_value = 3;
+  string ret_user_name = 4;
+  string text = 5;
+}
+
+message Follow_info {
+
+  int64 user_value = 1;
+  int64 follow_value = 2;
 }

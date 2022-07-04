@@ -2,9 +2,7 @@ from cmath import pi
 from distutils.log import error
 from hmac import digest_size
 import multiprocessing
-
 from operator import add
-
 import sys
 from typing import Mapping
 import grpc
@@ -12,11 +10,7 @@ import grpc
 from time import time
 import threading
 import hashlib
-
-from gRPC.chord_pb2 import  Address, Feature, Idvalue
-
 from gRPC.chord_pb2 import  Addr_id, Address, Feature, Idvalue
-
 from random import Random
 from functools import reduce
 from socket import gethostbyname, gethostname
@@ -41,15 +35,15 @@ def make_stub_chord(addr):
 #each node, knows its succesor.
 # IMPLEMENT: predeccesor
 class Node:
-    def __init__(self, addr, node_to_join = None, vocal_option = False):
+    def __init__(self, addr, node_to_join = None, vocal_option = False, id = None):
         self.addr = addr
         self.port = addr.split(":")[1]
         self.ip = addr.split(":")[0]
-        #self.domain_addr = lambda value : reduce((lambda x,y : x + y), [x for x in value.split(":")[0].split(".") + [value.split(":")[1] ] ]) 
-        #self.turn_in_hash = lambda input_to_id : int(hashlib.sha1(bytes(self.domain_addr(input_to_id), 'utf-8') ).digest(), 10)
         self.vocal_option = vocal_option
         self.id = int(netaddr.IPAddress(self.ip))
-        #self.context_sender = zmq.Context()
+        if id is not None:
+            self.id = id
+
         self.m = 64
         self.length_succ_list = 3        
         self.succ_list = [(self.id, self.addr) for i in range(self.length_succ_list)]
@@ -61,11 +55,8 @@ class Node:
         self.commands_that_need_request = {"RECT", "FIND_SUCC", "FIND_PRED", "CLOSEST_PRED_FING", "STAB", "GET_STORAGE", "GET_NON_STORAGE"}
 
         #if self.vocal_option: print("Started node ", (self.id, self.addr))
-        print("Started node ", (self.id, self.addr))
 
-        # initialize this node messages manager
-        #client_requester = requester(context = self.context_sender, vocal_option = self.vocal_option)
-
+       
         # if node_to_join is not None then this node is joining and existing chord structure
         if node_to_join:
             node_to_join_id = netaddr.IPAddress(node_to_join.split(":")[0])
@@ -74,9 +65,7 @@ class Node:
             try:
                 resp = stub.Join(Feature(name="REQ"))
             except grpc.RpcError as e:
-                print("0")
-                print(e.code())
-                print(e.details())
+               
                 resp = Feature(name="Fail")
 
             # if the requested join does not receive feedback from the json sended
@@ -107,7 +96,7 @@ class Node:
                 try:
                     resp = stub.Join(Feature(name="REQ"))
                 except grpc.RpcError as e:
-                    print("2")
+                    
                     resp = Feature(name="Fail")
 
         else:
@@ -138,7 +127,6 @@ class Node:
             ChordServicer(self), server)
         server.add_insecure_port('[::]:{}'.format(self.port))
         server.start()
-        print("started server")
         server.wait_for_termination()
 
 
@@ -183,9 +171,7 @@ class Node:
         try:
             pred = stub.Find_pred(Idvalue(value=id_to_found_pred))
         except grpc.RpcError as e:
-            print("3")
-            print(e.code())
-            print(e.details())
+         
             return False
         
         self.predecessor_id, self.predecessor_addr = pred.value, pred.addr   
@@ -194,9 +180,7 @@ class Node:
         try:
             succ_list = stub.Get_succ_list(Feature(name="REQ"))
         except grpc.RpcError as e:
-            print("4")
-            print(e.code())
-            print(e.details())
+       
             return False
 
         self.succ_list = self._parse_address_list(succ_list)
@@ -230,7 +214,7 @@ class Node:
         try:
             succ_list = stub.Get_succ_list(Feature(name="REQ"))
         except grpc.RpcError as e:
-            print("error4")
+            
             return
 
         p_succ_list = self._parse_address_list(succ_list)
@@ -248,7 +232,7 @@ class Node:
                 self.succ_list = [[pred.value, pred.addr]] + pred_succ_list[:-1]                                       
             
             except grpc.RpcError as e:
-                print("error5")
+                
                 return
     
 
@@ -317,9 +301,7 @@ class Node:
                     try:
                         stub.Rectify(Address(value=self.id,addr=self.addr))
                     except grpc.RpcError as e:
-                        print("rect error")
-                        print(e.code())
-                        print(e.details())
+                        pass
                         
 
                     index = rand.choice( choices )                    
@@ -377,7 +359,7 @@ class Node:
             try:
                 pred = stub.Closest_pred_fing(Idvalue(value=id))
             except grpc.RpcError as e:
-                print('here')
+                
                 return None
             
             
@@ -387,7 +369,6 @@ class Node:
                 succ_list = stub.Get_succ_list(Feature(name="REQ"))
                 succ_list = self._parse_address_list(succ_list)
             except grpc.RpcError as e:
-                print('here2')
                 return None
 
             
@@ -420,7 +401,7 @@ class Node:
     #def closest_storage_node(self, response_addr, first_node_addr, sock_req):
     def closest_storage_node(self, first_node_addr):
         ip, port = self.addr.split(":")[0], self.addr.split(":")[1]
-        port = int(port) 
+        port = int(port) +2 
         destination_addr = ip + ":{}".format(port)
 
         
@@ -454,7 +435,6 @@ class Node:
                 return stor.is_storage, stor.addr, stor.found, False
             except grpc.RpcError as e:
                 return False, None, False, True
-
             
                 
 
@@ -494,21 +474,12 @@ class Node:
                 return stor.is_storage, stor.addr, stor.found, False
             except grpc.RpcError as e:
                 return False, None, False , True
-
-
-    def make_storage(self, K, index, storage_nodes):
-        #self.sn_client.make_storage_wrapper(K, index, storage_nodes)
-        self.sn_client.make_storage_node(K, index, storage_nodes)
-        return
-
-    def remove_storage(self):
-
-        self.sn_client.remove_storage()
-   
+                
 
     def make_storage(self, K, index, storage_nodes):
-        #self.sn_client.make_storage_wrapper(K, index, storage_nodes)
-        self.sn_client.make_storage_node(K, index, storage_nodes)
+        thr_make_stor = threading.Thread(target = self.sn_client.make_storage_node, args =[K, index, storage_nodes] )
+        thr_make_stor.start()
+        #self.sn_client.make_storage_node(K, index, storage_nodes)
         return
 
     def remove_storage(self):
@@ -527,14 +498,10 @@ class Node:
         is_storage = self.sn_client.is_storage()
 
         if first_node_addr == self.succ_list[0][1]:
-            print('3')
             return "error", self.id
 
-        print("llegue")
         if is_storage:
-            print('1')
             if self.sn_client.storage_contains(id_to_find):
-                print('2')
                 return destination_addr, self.id 
             else:
                 next_node_id, next_node_addr = self.succ_list[0][0], self.succ_list[0][1]
@@ -542,9 +509,7 @@ class Node:
                 #recv_json = sock_req.make_request(json_to_send = {"command_name" : "GET_NON_STORAGE", "method_params" : { "response_addr": response_addr, "first_node_addr" : first_node_addr }, "procedence_addr": self.addr}, requester_object= self, asked_properties = None, destination_id = next_node_id, destination_addr = next_node_addr) 
                 stub = make_stub_chord(next_node_addr)
                 try:
-                    print('2a')
-                    addr = stub.Get_storage_by_id(Addr_id(value='{}'.format(id_to_find), addr=first_node_addr))
-                    print('3a')
+                    addr = stub.Get_storage_by_id(Address(value=id_to_find, addr=first_node_addr))
                     return addr.addr, addr.value
 
                 except grpc.RpcError as e:
@@ -554,23 +519,18 @@ class Node:
             if first_node_addr is None: first_node_addr = self.addr
 
             if first_node_addr == self.succ_list[0][1]:
-                print('3')
                 return "error", self.id
 
             # TEST
             #print("ask next node if storage")
             next_node_id, next_node_addr = self.succ_list[0][0], self.succ_list[0][1]
-            print('4')
             #recv_json = sock_req.make_request(json_to_send = {"command_name" : "GET_NON_STORAGE", "method_params" : { "response_addr": response_addr, "first_node_addr" : first_node_addr }, "procedence_addr": self.addr}, requester_object= self, asked_properties = None, destination_id = next_node_id, destination_addr = next_node_addr) 
             stub = make_stub_chord(next_node_addr)
             try:
-                print("llegue2")
-                addr = stub.Get_storage_by_id(Addr_id(value='{}'.format(id_to_find), addr=first_node_addr))
-                print('5')
+                addr = stub.Get_storage_by_id(Address(value=id_to_find, addr=first_node_addr))
                 return addr.addr, addr.value
 
             except grpc.RpcError as e:
                 return "error", self.id
-
 
                 

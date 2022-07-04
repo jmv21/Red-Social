@@ -51,9 +51,8 @@ class ChordServicer(gRPC.chord_pb2_grpc.RouteGuideServicer):
         return Address(value=n_id, addr=n_addr)
 
     def Find_pred(self, request, context):
-        print(request)
         n_id, n_addr = self.chord_node.find_predecessor(request.value)
-        #n_addr = "{}".format(n_addr)
+      
         return Address(value=n_id, addr=n_addr)
 
     def Get_succ_list(self, request, context):
@@ -76,15 +75,20 @@ class ChordServicer(gRPC.chord_pb2_grpc.RouteGuideServicer):
         return Feature(name="ACK")
 
     def Get_storage(self, request, context):
-        st_is_storage, st_addr, st_found, st_error = self.chord_node.closest_storage_node(request.addr)
+        addr_i = request.addr
+        if request.addr == '0':
+            addr_i = None 
+        st_is_storage, st_addr, st_found, st_error = self.chord_node.closest_storage_node(addr_i)
         return Storage(addr=st_addr, is_storage=st_is_storage, found=st_found, error=st_error)
 
     def Get_non_storage(self, request, context):
-        st_is_storage, st_addr, st_found, st_error = self.chord_node.closest_non_storage_node(request.addr)
+        addr_i = request.addr
+        if request.addr == '0':
+            addr_i = None 
+        st_is_storage, st_addr, st_found, st_error = self.chord_node.closest_non_storage_node(addr_i)
         return Storage(addr=st_addr, is_storage=st_is_storage, found=st_found, error=st_error)
 
     def Make_storage(self, request, context):
-        print("9")
         self.chord_node.make_storage(request.K, request.index, request.nodes.values)
         return Feature(name="ACK")
     
@@ -92,15 +96,13 @@ class ChordServicer(gRPC.chord_pb2_grpc.RouteGuideServicer):
         self.chord_node.remove_storage()
         return Feature(name="ACK")
 
-    # FIRST REQUEST MUST HAVE ADDR NONE
+    # FIRST REQUEST MUST HAVE ADDR NONE:'0'
     def Get_storage_by_id(self, request, context):
-        print("entered baby")
         addr_i = request.addr
         if request.addr == '0':
             addr_i = None 
 
         addr, id = self.chord_node.get_storage_by_id(int(request.value), addr_i)
-        print("returning")
         return Address(value=0,addr=addr)
 
 

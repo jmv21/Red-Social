@@ -30,4 +30,4 @@ EXPOSE 8082
 
 
 #Default running
-ENTRYPOINT ["python", "/sn/client.py"] 
+ENTRYPOINT ["python", "/sn/run_app_client.py"] 

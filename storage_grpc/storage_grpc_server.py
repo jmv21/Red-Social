@@ -28,6 +28,7 @@ from storage_grpc.storage_pb2 import  AddressS, Address_listS, Bool, DataS, Feat
 #import route_guide_pb2
 import storage_grpc.storage_pb2_grpc
 
+
 #import chord_node
 #from chord_node import Node
 
@@ -42,11 +43,25 @@ class StorageServicer(storage_grpc.storage_pb2_grpc.StorageServicerServicer):
         return FeatureS(name="ACK")
 
     def Update_list(self, request, context):
-        print("kla")
+        
         list_addr = [(item.value, item.addr) for item in request.values]
-        print("klap")
+        
         self.storage_node.update_node_list(list_addr)
         return FeatureS(name="ACK")
+    
+    def Get_stor_nodes(self, request, context):
+        print("entered in get stor nodes")
+        ad_list =[]
+        
+        for node in self.storage_node.storage_nodes:
+            if node is not None:
+                ad_list.append(AddressS(value=node[0], addr=node[1])) 
+                
+            else:
+                ad_list.append(AddressS(value=0, addr='0'))
+        addrs =  Address_listS(values=ad_list)
+        return addrs
+    
 
     def Ask_for_file(self, request, context):
         with open(request.name, 'rb') as content_file:
@@ -59,10 +74,35 @@ class StorageServicer(storage_grpc.storage_pb2_grpc.StorageServicerServicer):
         return Bool(b=res)
     
     def Register_user(self, request, context):
-        res = self.storage_node.register(self, request.name, request.password, request.value)
-        return Bool(b=res)
+        res, token = self.storage_node.register( request.name, request.password, request.value)
+        return Log_token(b=res,token = token)
 
     def Login_user(self, request, context):
-        res, token = self.storage_node.login(self, request.name, request.password, request.value)
-        return Log_token(b=res,token=token)
+        res, token, id = self.storage_node.login(self, request.name, request.password, request.value)
+        return Log_token(b=res,token=token, value=id)
     
+    def Random_n(self, request, context):
+        content = self.storage_node.random_n(request.value)
+        response = DataS(data=content)
+        yield response
+
+    def Get_following(self, request, context):
+        content = self.storage_node.get_following(request.value)
+        return content
+    
+    def Followed_tweets(self, request, context):
+        content = self.storage_node.followed_tweets(request.values)
+        response = DataS(data=content)
+        yield response
+    
+    def Tweet(self, request, context):
+        self.storage_node.tweet(request.addr, request.value)
+        return FeatureS(name="ACK")
+    
+    def Retweet(self, request, context):
+        self.storage_node.tweet(request.value, request.text, request.tweet_value, request.ret_user_value, request.ret_user_name)
+        return FeatureS(name="ACK")
+    
+    def Comment(self, request, context):
+        self.storage_node.tweet(request.vaue, request.text, request.tweet_value, request.ret_user_value, request.ret_user_name)
+        return FeatureS(name="ACK")

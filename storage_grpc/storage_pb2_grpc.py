@@ -2,7 +2,7 @@
 """Client and server classes corresponding to protobuf-defined services."""
 import grpc
 
-import storage_grpc.storage_pb2 as storage__pb2
+import storage_pb2 as storage__pb2
 
 
 class StorageServicerStub(object):
@@ -25,6 +25,11 @@ class StorageServicerStub(object):
                 request_serializer=storage__pb2.Address_listS.SerializeToString,
                 response_deserializer=storage__pb2.FeatureS.FromString,
                 )
+        self.Get_stor_nodes = channel.unary_unary(
+                '/routeguide.StorageServicer/Get_stor_nodes',
+                request_serializer=storage__pb2.FeatureS.SerializeToString,
+                response_deserializer=storage__pb2.Address_listS.FromString,
+                )
         self.Ask_for_file = channel.unary_stream(
                 '/routeguide.StorageServicer/Ask_for_file',
                 request_serializer=storage__pb2.FeatureS.SerializeToString,
@@ -38,12 +43,47 @@ class StorageServicerStub(object):
         self.Register_user = channel.unary_unary(
                 '/routeguide.StorageServicer/Register_user',
                 request_serializer=storage__pb2.User_data.SerializeToString,
-                response_deserializer=storage__pb2.Bool.FromString,
+                response_deserializer=storage__pb2.Log_token.FromString,
                 )
         self.Login_user = channel.unary_unary(
                 '/routeguide.StorageServicer/Login_user',
                 request_serializer=storage__pb2.User_data.SerializeToString,
                 response_deserializer=storage__pb2.Log_token.FromString,
+                )
+        self.Random_n = channel.unary_stream(
+                '/routeguide.StorageServicer/Random_n',
+                request_serializer=storage__pb2.IdvalueS.SerializeToString,
+                response_deserializer=storage__pb2.DataS.FromString,
+                )
+        self.Get_following = channel.unary_unary(
+                '/routeguide.StorageServicer/Get_following',
+                request_serializer=storage__pb2.IdvalueS.SerializeToString,
+                response_deserializer=storage__pb2.Id_list.FromString,
+                )
+        self.Followed_tweets = channel.unary_stream(
+                '/routeguide.StorageServicer/Followed_tweets',
+                request_serializer=storage__pb2.Id_list.SerializeToString,
+                response_deserializer=storage__pb2.DataS.FromString,
+                )
+        self.Tweet = channel.unary_unary(
+                '/routeguide.StorageServicer/Tweet',
+                request_serializer=storage__pb2.AddressS.SerializeToString,
+                response_deserializer=storage__pb2.FeatureS.FromString,
+                )
+        self.Retweet = channel.unary_unary(
+                '/routeguide.StorageServicer/Retweet',
+                request_serializer=storage__pb2.Comment_info.SerializeToString,
+                response_deserializer=storage__pb2.FeatureS.FromString,
+                )
+        self.Follow = channel.unary_unary(
+                '/routeguide.StorageServicer/Follow',
+                request_serializer=storage__pb2.Follow_info.SerializeToString,
+                response_deserializer=storage__pb2.FeatureS.FromString,
+                )
+        self.Comment = channel.unary_unary(
+                '/routeguide.StorageServicer/Comment',
+                request_serializer=storage__pb2.Comment_info.SerializeToString,
+                response_deserializer=storage__pb2.FeatureS.FromString,
                 )
 
 
@@ -59,6 +99,12 @@ class StorageServicerServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def Update_list(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def Get_stor_nodes(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -88,6 +134,48 @@ class StorageServicerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def Random_n(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def Get_following(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def Followed_tweets(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def Tweet(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def Retweet(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def Follow(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def Comment(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_StorageServicerServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -100,6 +188,11 @@ def add_StorageServicerServicer_to_server(servicer, server):
                     servicer.Update_list,
                     request_deserializer=storage__pb2.Address_listS.FromString,
                     response_serializer=storage__pb2.FeatureS.SerializeToString,
+            ),
+            'Get_stor_nodes': grpc.unary_unary_rpc_method_handler(
+                    servicer.Get_stor_nodes,
+                    request_deserializer=storage__pb2.FeatureS.FromString,
+                    response_serializer=storage__pb2.Address_listS.SerializeToString,
             ),
             'Ask_for_file': grpc.unary_stream_rpc_method_handler(
                     servicer.Ask_for_file,
@@ -114,12 +207,47 @@ def add_StorageServicerServicer_to_server(servicer, server):
             'Register_user': grpc.unary_unary_rpc_method_handler(
                     servicer.Register_user,
                     request_deserializer=storage__pb2.User_data.FromString,
-                    response_serializer=storage__pb2.Bool.SerializeToString,
+                    response_serializer=storage__pb2.Log_token.SerializeToString,
             ),
             'Login_user': grpc.unary_unary_rpc_method_handler(
                     servicer.Login_user,
                     request_deserializer=storage__pb2.User_data.FromString,
                     response_serializer=storage__pb2.Log_token.SerializeToString,
+            ),
+            'Random_n': grpc.unary_stream_rpc_method_handler(
+                    servicer.Random_n,
+                    request_deserializer=storage__pb2.IdvalueS.FromString,
+                    response_serializer=storage__pb2.DataS.SerializeToString,
+            ),
+            'Get_following': grpc.unary_unary_rpc_method_handler(
+                    servicer.Get_following,
+                    request_deserializer=storage__pb2.IdvalueS.FromString,
+                    response_serializer=storage__pb2.Id_list.SerializeToString,
+            ),
+            'Followed_tweets': grpc.unary_stream_rpc_method_handler(
+                    servicer.Followed_tweets,
+                    request_deserializer=storage__pb2.Id_list.FromString,
+                    response_serializer=storage__pb2.DataS.SerializeToString,
+            ),
+            'Tweet': grpc.unary_unary_rpc_method_handler(
+                    servicer.Tweet,
+                    request_deserializer=storage__pb2.AddressS.FromString,
+                    response_serializer=storage__pb2.FeatureS.SerializeToString,
+            ),
+            'Retweet': grpc.unary_unary_rpc_method_handler(
+                    servicer.Retweet,
+                    request_deserializer=storage__pb2.Comment_info.FromString,
+                    response_serializer=storage__pb2.FeatureS.SerializeToString,
+            ),
+            'Follow': grpc.unary_unary_rpc_method_handler(
+                    servicer.Follow,
+                    request_deserializer=storage__pb2.Follow_info.FromString,
+                    response_serializer=storage__pb2.FeatureS.SerializeToString,
+            ),
+            'Comment': grpc.unary_unary_rpc_method_handler(
+                    servicer.Comment,
+                    request_deserializer=storage__pb2.Comment_info.FromString,
+                    response_serializer=storage__pb2.FeatureS.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -163,6 +291,23 @@ class StorageServicer(object):
         return grpc.experimental.unary_unary(request, target, '/routeguide.StorageServicer/Update_list',
             storage__pb2.Address_listS.SerializeToString,
             storage__pb2.FeatureS.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def Get_stor_nodes(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/routeguide.StorageServicer/Get_stor_nodes',
+            storage__pb2.FeatureS.SerializeToString,
+            storage__pb2.Address_listS.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
@@ -213,7 +358,7 @@ class StorageServicer(object):
             metadata=None):
         return grpc.experimental.unary_unary(request, target, '/routeguide.StorageServicer/Register_user',
             storage__pb2.User_data.SerializeToString,
-            storage__pb2.Bool.FromString,
+            storage__pb2.Log_token.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
@@ -231,5 +376,124 @@ class StorageServicer(object):
         return grpc.experimental.unary_unary(request, target, '/routeguide.StorageServicer/Login_user',
             storage__pb2.User_data.SerializeToString,
             storage__pb2.Log_token.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def Random_n(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_stream(request, target, '/routeguide.StorageServicer/Random_n',
+            storage__pb2.IdvalueS.SerializeToString,
+            storage__pb2.DataS.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def Get_following(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/routeguide.StorageServicer/Get_following',
+            storage__pb2.IdvalueS.SerializeToString,
+            storage__pb2.Id_list.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def Followed_tweets(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_stream(request, target, '/routeguide.StorageServicer/Followed_tweets',
+            storage__pb2.Id_list.SerializeToString,
+            storage__pb2.DataS.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def Tweet(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/routeguide.StorageServicer/Tweet',
+            storage__pb2.AddressS.SerializeToString,
+            storage__pb2.FeatureS.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def Retweet(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/routeguide.StorageServicer/Retweet',
+            storage__pb2.Comment_info.SerializeToString,
+            storage__pb2.FeatureS.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def Follow(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/routeguide.StorageServicer/Follow',
+            storage__pb2.Follow_info.SerializeToString,
+            storage__pb2.FeatureS.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def Comment(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/routeguide.StorageServicer/Comment',
+            storage__pb2.Comment_info.SerializeToString,
+            storage__pb2.FeatureS.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)

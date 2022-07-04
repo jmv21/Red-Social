@@ -77,7 +77,7 @@ class RouteGuideStub(object):
                 )
         self.Get_storage_by_id = channel.unary_unary(
                 '/routeguide.RouteGuide/Get_storage_by_id',
-                request_serializer=chord__pb2.Addr_id.SerializeToString,
+                request_serializer=chord__pb2.Address.SerializeToString,
                 response_deserializer=chord__pb2.Address.FromString,
                 )
 
@@ -235,7 +235,7 @@ def add_RouteGuideServicer_to_server(servicer, server):
             ),
             'Get_storage_by_id': grpc.unary_unary_rpc_method_handler(
                     servicer.Get_storage_by_id,
-                    request_deserializer=chord__pb2.Addr_id.FromString,
+                    request_deserializer=chord__pb2.Address.FromString,
                     response_serializer=chord__pb2.Address.SerializeToString,
             ),
     }
@@ -465,7 +465,7 @@ class RouteGuide(object):
             timeout=None,
             metadata=None):
         return grpc.experimental.unary_unary(request, target, '/routeguide.RouteGuide/Get_storage_by_id',
-            chord__pb2.Addr_id.SerializeToString,
+            chord__pb2.Address.SerializeToString,
             chord__pb2.Address.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)

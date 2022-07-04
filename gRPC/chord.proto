@@ -55,7 +55,7 @@ service RouteGuide {
 
   rpc Remove_storage(Feature) returns (Feature) {}
 
-  rpc Get_storage_by_id(Addr_id) returns (Address) {}
+  rpc Get_storage_by_id(Address) returns (Address) {}
 
 
 
