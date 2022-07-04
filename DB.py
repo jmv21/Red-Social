@@ -15,8 +15,6 @@ from Crypto.PublicKey import RSA
 from Crypto.Cipher import PKCS1_OAEP
 
 from playhouse.apsw_ext import *
-from playhouse.shortcuts import model_to_dict
-from playhouse.sqlite_ext import basestring
 
 db_proxy = DatabaseProxy()
 
@@ -27,8 +25,8 @@ class BaseModel(Model):
 
 
 class User(BaseModel):
-    id = AutoField()
-    name = CharField()
+    id = BigIntegerField(primary_key=True)
+    name = CharField(null=None)
     passw = TextField()
     token = TextField()
     encK = CharField(null=True)
@@ -39,9 +37,11 @@ class Tweet(BaseModel):
     timestamp = DateTimeField(default=datetime.now, null=False)
     likes = BigIntegerField(default=0, constraints=[Check('likes>=0')], null=False)
     user_id = ForeignKeyField(User, backref='tweets', constraints=[Check('user_id>=0')], null=False)
-    ret_id = IntegerField(null=True, default=0)
-    ret_user_id = ForeignKeyField(User, backref='tweets', constraints=[Check('user_id>=0')], default = 0)
-    ret_user_name = CharField(default=None)
+    user_name = CharField(null=False)
+    resp_tweet_id = IntegerField(null=True, default=-1)
+    ret_id = IntegerField(null=True, default=-1)
+    ret_user_id = ForeignKeyField(User, backref='tweets', constraints=[Check('user_id>=0')], default=-1)
+    ret_user_name = CharField(default='', null=True)
 
 
 class Friends(BaseModel):
@@ -65,11 +65,11 @@ def create_db(name: str = 'DB1', initial_id: int = 1):
     key = RSA.generate(2048)
     encrypted_key = key.export_key(passphrase=new_passw, pkcs=8,
                                    protection="scryptAndAES256-CBC")
-    file_out = open("receiver.pem", "wb")
+    file_out = open("receiver.pem" + name[-1], "wb")
     file_out.write(encrypted_key)
     file_out.close()
 
-    str_encoded = cryptocode.encrypt(new_passw, getpass.getuser() + str(gma()) + str(initial_id))
+    str_encoded = cryptocode.encrypt(new_passw, getpass.getuser() + str(initial_id))
     User.create(id=initial_id, name='foo', passw=str_encoded, token=token_creation(initial_id, new_passw),
                 encK=secrets.token_urlsafe(5))
     user = User.select().limit(1)
@@ -107,42 +107,67 @@ def token_creation(id: int, passw):
     return tok_encoded
 
 
-def user_register(name, password: str):
-    db = db_connect()
+def check_token(user_id, token, db_name: str = 'DB1'):
+    db = db_connect(db_name)
+    user = User.get_by_id(user_id)
+    enck = cryptocode.decrypt(user.encK, token)
+    db.close()
+    return enck
+
+
+def user_register(name, password: str, user_id: int, db_name: str = 'DB1'):
+    db = db_connect(db_name)
     user = User.select().where(User.name == name)
     if (len(user) > 0):
-        return False
+        return False, '0'
     new_passw = cryptocode.encrypt(secrets.token_urlsafe(20), password)
-    User.create(name=name, passw=new_passw, token=secrets.token_urlsafe(5), encK=secrets.token_urlsafe(5))
+    User.create(id=user_id, name=name, passw=new_passw, token=secrets.token_urlsafe(5), encK=secrets.token_urlsafe(5))
     user = User.get(User.name == name)
-    user[0].token = token_creation(user[0].id, str(user[0].id) + new_passw)
+    user.token = token_creation(user.id, str(user.id) + new_passw)
     user.save()
-    user[0].encK = cryptocode.encrypt(user[0].encK,
-                                      cryptocode.decrypt(str(user[0].id) + user[0].token, str(user[0].id + new_passw)))
+    tok = cryptocode.decrypt(user.token, str(user.id) + new_passw)
+    user.encK = cryptocode.encrypt(user.encK,
+                                   cryptocode.decrypt(user.token, str(user.id) + new_passw))
     user.save()
     db.close()
-    return True
+    return True, tok
 
 
-def user_login(name, password):
-    db = db_connect()
-    user = User.select().where(User.name == name)
+def user_login(name, password, user_id=None, db_name: str = 'DB1'):
+    db = db_connect(db_name)
+    if (user_id is None):
+        user = User.select().where(User.name == name)
+    else:
+        try:
+            user = User.get_by_id(user_id)
+            if (user[0].name != name):
+                return False
+        except:
+            return False
+
     if len(user) < 0:
-        return False
+        return (False, '0', -1)
     passw = cryptocode.decrypt(user[0].passw, password)
 
     if passw is False:
-        return False
+        return (False, '0')
 
     tok = cryptocode.decrypt(user[0].token, password)
 
     if tok is False:
-        user[0].token = token_creation(user[0].id, str(user[0].id + passw))
+        tok = token_creation(user[0].id, str(user[0].id + passw))
+        user[0].token = tok
         user[0].encK = cryptocode.encrypt(user[0].encK,
                                           cryptocode.decrypt(str(user[0].id) + user[0].token, str(user[0].id + passw)))
-
     db.close()
 
+    return (True, tok, user[0].id)
+
+
+def follow(user_id, followed_id, db_name: str = 'DB1'):
+    db = db_connect(db_name)
+    Friends.get_or_create(user_id=user_id, friend_id=followed_id)
+    db.close()
     return True
 
 
@@ -157,33 +182,123 @@ def like(user_id, tweet_id, tweet_user_id, db_name: str = 'DB1'):
         Tweet.update(likes=Tweet.likes + 1 if not dislike else -1).where(
             Tweet.id == tweet_id and Tweet.user_id == user_id).execute()
     except:
-        return False
+        return (False, None)
+    db.close()
+    return (True, Tweet.get(Tweet.id == tweet_id and Tweet.user_id == user_id))
+
+
+def get_id_by_name(name, db_name='DB1'):
+    db = db_connect(db_name)
+    answ = User.get(User.name == name)
+    db.close()
+    return answ.id
+
+
+def get_random_tweets(quantity: int, db_name='DB1'):
+    db = db_connect(db_name)
+    answ = Tweet.select().order_by(fn.Random()).limit(quantity)
+    db.close()
+    return answ
+
+
+def get_followed_updated_tweets(followed_id_list, db_name: str = 'DB1'):
+    db = db_connect(db_name)
+    sbqry = Tweet.select().order_by(Tweet.timestamp.desc())
+    result = []
+    for element in followed_id_list:
+        d = list(sbqry.filter(Tweet.user_id == element).limit(10).dicts())
+        if len(d) > 0:
+            result.append((element, d))
+    db.close()
+    return result
+
+
+def tweet(user_id: int, text, ret_id=-1, ret_user_id=-1, ret_user_name='', db_name: str = 'DB1', resp_tweet_id=-1):
+    db = db_connect(db_name)
+    user = User.get_by_id(user_id)
+    Tweet.create(content=text, user_id=user.id, user_name=user.name, ret_user_name=ret_user_name,
+                 ret_user_id=ret_user_id, ret_id=ret_id, resp_tweet_id=resp_tweet_id)
     db.close()
     return True
 
 
-def execute_order(json_file):
-    json_f = json.load(json_file)
+def execute_order(json_f):
     order = json_f[0]
     if order == 0:
-        return user_register(json_f[1], json_f[2])
+        return user_register(json_f[1], json_f[2], json_f[3], json_f[4] if len(json_f) == 5 else 'DB1')
 
-    if order == 1:
-        return user_login(json_f[1], json_f[2])
+    elif order == 1:
+        return user_login(json_f[1], json_f[2], json_f[3] if len(json_f) >= 4 else -1,
+                          json_f[4] if len(json_f) == 5 else 'DB1')
 
-    if order == 2:
-        return tweet(json_f[1], json_f[2], json_f[3])
+    elif order == 2:
+        return tweet(json_f[1], json_f[2], json_f[3] if len(json_f) >= 4 else -1, json_f[4] if len(json_f) >= 5 else -1,
+                     json_f[5] if len(json_f) >= 6 else '',
+                     json_f[6] if len(json_f) == 7 else 'DB1')
 
 
-def tweet(user_id: int, text, ret_id=0, db_name: str = 'DB1'):
+    elif order == 3:
+        return like(json_f[1], json_f[2], json_f[3], json_f[4] if len(json_f) == 5 else 'DB1')
+
+    elif order == 4:
+        return get_followed_updated_tweets(json_f[1], json_f[2] if len(json_f) == 3 else 'DB1')
+
+    elif order == 5:
+        return get_random_tweets(json_f[1], json_f[2] if len(json_f) == 3 else 'DB1')
+
+    elif order == 6:
+        return follow(json_f[1], json_f[2], json_f[3] if len(json_f) == 4 else 'DB1')
+
+    elif order == 7:
+        return tweet(json_f[1], json_f[2], -1, json_f[4] if len(json_f) >= 5 else -1,
+                     json_f[5] if len(json_f) >= 6 else '',
+                     json_f[6] if len(json_f) == 7 else 'DB1', resp_tweet_id=json_f[3] if len(json_f) >= 4 else -1)
+
+
+"""------------------------Utils---------------------------------"""
+
+
+def get_user_name(user_id, db_name: str = 'DB1'):
     db = db_connect(db_name)
-    user = User.filter(User.id == user_id)
-    Tweet.create(content=text, user_id=user[0].id, ret_id=ret_id)
+    answ = User.get_by_id(user_id).name
     db.close()
+    return answ
+
+
+def get_friends(user_id, db_name: str = 'DB1'):
+    db = db_connect(db_name)
+    answ = list(Friends.select(Friends.friend_id).where(Friends.user_id == user_id).dicts())
+    db.close()
+    r_answ = []
+    for element in answ:
+        r_answ.append(element['friend_id'])
+    return r_answ
+
+
+def user_exist_name(name, db_name: str = 'DB1'):
+    db = db_connect(db_name)
+    try:
+        User.get(User.name == name)
+        return True
+    except:
+        return False
+    finally:
+        db.close()
+
+
+def user_exist(user_id, db_name: str = 'DB1'):
+    db = db_connect(db_name)
+    try:
+        User.get_by_id(user_id)
+        return True
+    except:
+        return False
+    finally:
+        db.close()
 
 
 def load_with_datetime(pairs, format='%Y-%m-%dT%H:%M:%S.%f'):
-    """Load with dates"""
+    """Load with date and time"""
     d = {}
     for k, v in pairs:
         if isinstance(v, str):
@@ -205,36 +320,14 @@ def json_serial(obj):
     except:
         pass
 
-def user_exist_name(name):
-    db = db_connect()
-    try:
-        User.get(name == name)
-        return True
-    except:
-        return False
-    finally:
-        db.close()
+
+def export_models_to_json(model):
+    return json.dumps(model, default=json_serial)
 
 
-def user_exist(user_id):
-    db = db_connect()
-    try:
-        User.get_by_id(user_id)
-        return True
-    except:
-        return False
-    finally:
-        db.close()
-
-
-
-def get_followed_updated_tweets(followed):
-    followed_tweets = Tweet.Select().where(Tweet.ret_user_id.in_(followed))
-
-
-
-def export_models_to_json(model:Model):
-    return json.dumps([model], default=json_serial)
+def load_json(json_string):
+    arra = json.loads(json_string, object_pairs_hook=load_with_datetime)
+    return arra
 
 
 def export_databse_to_json(db_name='DB1'):
@@ -244,7 +337,6 @@ def export_databse_to_json(db_name='DB1'):
     friends_ = list(Friends.select().dicts())
     likes_ = list(Likes.select().dicts())
     db.close()
-
     return json.dumps([user, tweet_, friends_, likes_], default=json_serial)
 
 
