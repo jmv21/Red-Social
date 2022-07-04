@@ -181,9 +181,9 @@ def like(user_id, tweet_id, tweet_user_id, db_name: str = 'DB1'):
         Tweet.update(likes=Tweet.likes + 1 if not dislike else -1).where(
             Tweet.id == tweet_id and Tweet.user_id == user_id).execute()
     except:
-        return False
+        return (False, None)
     db.close()
-    return True
+    return (True, Tweet.get(Tweet.id == tweet_id and Tweet.user_id == user_id))
 
 
 def get_id_by_name(name, db_name='DB1'):
@@ -276,7 +276,7 @@ def user_exist_name(name, db_name: str = 'DB1'):
         db.close()
 
 
-def user_exist(user_id,  db_name: str = 'DB1'):
+def user_exist(user_id, db_name: str = 'DB1'):
     db = db_connect(db_name)
     try:
         User.get_by_id(user_id)
@@ -312,8 +312,12 @@ def json_serial(obj):
 
 
 def export_models_to_json(model: Model):
-    return json.dumps([model], default=json_serial)
+    return json.dumps(model, default=json_serial)
 
+
+def load_json(json_string):
+    arra = json.loads(json_string, object_pairs_hook=load_with_datetime)
+    return arra
 
 def export_databse_to_json(db_name='DB1'):
     db = db_connect(db_name)
