@@ -91,12 +91,23 @@ class Command:
         elif(string_comand == 'random'):
             pass
         elif(string_comand == 'update'):
+            tweets = self.client.followed_tweets()
+            print()
+            print(color.BLUE+'PRINTING TWEETS FROM MY FOLLOWS'+color.END)
+            for tweet in tweets:
+                print()
+                print(color.BLUE +"User: "+ color.CYAN+ tweet['user_name'] +"    |    "+color.BLUE+ "Date: "+color.CYAN+ tweet['timestamp'] +color.END)
+                print(color.BLUE +"Text: "+ color.END+ tweet['content'])
+                print(color.BLUE +"Likes: "+ color.CYAN+ tweet['likes']+"    |    "+color.BLUE+ "ID: "+color.CYAN+ tweet['id'] +color.END)
+                print()
             pass
         elif(string_comand == 'like'):
             pass
         elif(string_comand == 'comment'):
+            self.client.comment()
             pass
         elif(string_comand == 'retweet'):
+            self.client.retweet()
             pass
         elif(string_comand == 'lookuser'):
             pass
