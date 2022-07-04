@@ -101,6 +101,16 @@ class Command:
         
         elif(string_comand == 'random'):
             tweets = self.client.random_n(self.cm_args[10])
+            print()
+            print(color.BLUE+'PRINTING LAST 10 RANDOM TWEETS'+color.END)
+            for tweet in tweets:
+                print()
+                print(color.BLUE +"User: "+ color.CYAN+ tweet['user_name'] +"    |    "+color.BLUE+ "Date: "+color.CYAN+ tweet['timestamp'] +color.END)
+                print(color.BLUE +"Text: "+ color.END+ tweet['content'])
+                print(color.BLUE +"Likes: "+ color.CYAN+ tweet['likes']+"    |    "+color.BLUE+ "ID: "+color.CYAN+ tweet['id'] +color.END)
+                print()
+            
+            
             # print()
             pass
         
