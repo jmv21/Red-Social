@@ -215,7 +215,8 @@ def get_followed_updated_tweets(followed_id_list, db_name: str = 'DB1'):
 def tweet(user_id: int, text, ret_id=-1, ret_user_id=-1, ret_user_name='', db_name: str = 'DB1'):
     db = db_connect(db_name)
     user = User.get_by_id(user_id)
-    Tweet.create(content=text, user_id=user.id, user_name=user.name, ret_id=ret_id)
+    Tweet.create(content=text, user_id=user.id, user_name=user.name, ret_user_name=ret_user_name,
+                 ret_user_id=ret_user_id, ret_id=ret_id)
     db.close()
     return True
 
@@ -329,7 +330,6 @@ def export_databse_to_json(db_name='DB1'):
     friends_ = list(Friends.select().dicts())
     likes_ = list(Likes.select().dicts())
     db.close()
-
     return json.dumps([user, tweet_, friends_, likes_], default=json_serial)
 
 
