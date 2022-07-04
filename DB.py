@@ -38,9 +38,10 @@ class Tweet(BaseModel):
     likes = BigIntegerField(default=0, constraints=[Check('likes>=0')], null=False)
     user_id = ForeignKeyField(User, backref='tweets', constraints=[Check('user_id>=0')], null=False)
     user_name = CharField(null=False)
-    ret_id = IntegerField(null=True, default=0)
-    ret_user_id = ForeignKeyField(User, backref='tweets', constraints=[Check('user_id>=0')], default=0)
-    ret_user_name = CharField(default=None, null=True)
+    resp_tweet_id = IntegerField(null=True, default=-1)
+    ret_id = IntegerField(null=True, default=-1)
+    ret_user_id = ForeignKeyField(User, backref='tweets', constraints=[Check('user_id>=0')], default=-1)
+    ret_user_name = CharField(default='', null=True)
 
 
 class Friends(BaseModel):
@@ -212,10 +213,11 @@ def get_followed_updated_tweets(followed_id_list, db_name: str = 'DB1'):
     return result
 
 
-def tweet(user_id: int, text, ret_id=-1, ret_user_id=-1, ret_user_name='', db_name: str = 'DB1'):
+def tweet(user_id: int, text, ret_id=-1, ret_user_id=-1, ret_user_name='', db_name: str = 'DB1', resp_tweet_id=-1):
     db = db_connect(db_name)
     user = User.get_by_id(user_id)
-    Tweet.create(content=text, user_id=user.id, user_name=user.name, ret_id=ret_id)
+    Tweet.create(content=text, user_id=user.id, user_name=user.name, ret_user_name=ret_user_name,
+                 ret_user_id=ret_user_id, ret_id=ret_id, resp_tweet_id=resp_tweet_id)
     db.close()
     return True
 
@@ -234,6 +236,7 @@ def execute_order(json_f):
                      json_f[5] if len(json_f) >= 6 else '',
                      json_f[6] if len(json_f) == 7 else 'DB1')
 
+
     elif order == 3:
         return like(json_f[1], json_f[2], json_f[3], json_f[4] if len(json_f) == 5 else 'DB1')
 
@@ -244,7 +247,12 @@ def execute_order(json_f):
         return get_random_tweets(json_f[1], json_f[2] if len(json_f) == 3 else 'DB1')
 
     elif order == 6:
-        return follow(json_f[1], json_f[2] if len(json_f) == 3 else 'DB1')
+        return follow(json_f[1], json_f[2], json_f[3] if len(json_f) == 4 else 'DB1')
+
+    elif order == 7:
+        return tweet(json_f[1], json_f[2], -1, json_f[4] if len(json_f) >= 5 else -1,
+                     json_f[5] if len(json_f) >= 6 else '',
+                     json_f[6] if len(json_f) == 7 else 'DB1', resp_tweet_id=json_f[3] if len(json_f) >= 4 else -1)
 
 
 """------------------------Utils---------------------------------"""
@@ -329,7 +337,6 @@ def export_databse_to_json(db_name='DB1'):
     friends_ = list(Friends.select().dicts())
     likes_ = list(Likes.select().dicts())
     db.close()
-
     return json.dumps([user, tweet_, friends_, likes_], default=json_serial)
 
 
