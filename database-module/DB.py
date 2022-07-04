@@ -105,13 +105,13 @@ def token_creation(id: int, passw):
     tok_encoded = cryptocode.encrypt(token, passw)
     return tok_encoded
 
-def check_token(user_id, token,  db_name: str = 'DB1'):
+
+def check_token(user_id, token, db_name: str = 'DB1'):
     db = db_connect(db_name)
     user = User.get_by_id(user_id)
     enck = cryptocode.decrypt(user.encK, token)
     db.close()
     return enck
-
 
 
 def user_register(name, password: str, user_id: int, db_name: str = 'DB1'):
@@ -220,8 +220,7 @@ def tweet(user_id: int, text, ret_id=0, db_name: str = 'DB1'):
     return True
 
 
-def execute_order(json_file):
-    json_f = json.load(json_file)
+def execute_order(json_f):
     order = json_f[0]
     if order == 0:
         return user_register(json_f[1], json_f[2], json_f[3], json_f[4] if len(json_f) == 5 else 'DB1')
