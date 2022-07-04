@@ -212,7 +212,7 @@ def get_followed_updated_tweets(followed_id_list, db_name: str = 'DB1'):
     return result
 
 
-def tweet(user_id: int, text, ret_id=0, db_name: str = 'DB1'):
+def tweet(user_id: int, text, ret_id=-1, ret_user_id=-1, ret_user_name='', db_name: str = 'DB1'):
     db = db_connect(db_name)
     user = User.get_by_id(user_id)
     Tweet.create(content=text, user_id=user.id, user_name=user.name, ret_id=ret_id)
@@ -226,11 +226,13 @@ def execute_order(json_f):
         return user_register(json_f[1], json_f[2], json_f[3], json_f[4] if len(json_f) == 5 else 'DB1')
 
     elif order == 1:
-        return user_login(json_f[1], json_f[2], json_f[3] if len(json_f) >= 4 else 'DB1',
+        return user_login(json_f[1], json_f[2], json_f[3] if len(json_f) >= 4 else -1,
                           json_f[4] if len(json_f) == 5 else 'DB1')
 
     elif order == 2:
-        return tweet(json_f[1], json_f[2], json_f[3], json_f[4] if len(json_f) == 5 else 'DB1')
+        return tweet(json_f[1], json_f[2], json_f[3] if len(json_f) >= 4 else -1, json_f[4] if len(json_f) >= 5 else -1,
+                     json_f[5] if len(json_f) >= 6 else '',
+                     json_f[6] if len(json_f) == 7 else 'DB1')
 
     elif order == 3:
         return like(json_f[1], json_f[2], json_f[3], json_f[4] if len(json_f) == 5 else 'DB1')
@@ -311,13 +313,14 @@ def json_serial(obj):
         pass
 
 
-def export_models_to_json(model: Model):
+def export_models_to_json(model):
     return json.dumps(model, default=json_serial)
 
 
 def load_json(json_string):
     arra = json.loads(json_string, object_pairs_hook=load_with_datetime)
     return arra
+
 
 def export_databse_to_json(db_name='DB1'):
     db = db_connect(db_name)
