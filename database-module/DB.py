@@ -145,7 +145,7 @@ def user_login(name, password, user_id=None, db_name: str = 'DB1'):
             return False
 
     if len(user) < 0:
-        return (False, '0')
+        return (False, '0', -1)
     passw = cryptocode.decrypt(user[0].passw, password)
 
     if passw is False:
@@ -160,7 +160,7 @@ def user_login(name, password, user_id=None, db_name: str = 'DB1'):
                                           cryptocode.decrypt(str(user[0].id) + user[0].token, str(user[0].id + passw)))
     db.close()
 
-    return (True, tok)
+    return (True, tok, user[0].id)
 
 
 def follow(user_id, followed_id, db_name: str = 'DB1'):
