@@ -1,4 +1,5 @@
 from numpy import str_
+from run_app_client import color
 
 
 class Command:
@@ -8,9 +9,10 @@ class Command:
     cm_args = []
 
     
-    def __init__(self,string_comand:str , args) -> None:
+    def __init__(self,string_comand:str , args, client) -> None:
         self.cm_name = self.CheckNames(string_comand)
         self.cm_args = self.CheckArgs(self.cm_name,args)
+        self.client = client
         print()
     
     def CheckNames(self,string_comand:str) -> str:
@@ -84,29 +86,61 @@ class Command:
         
         if(string_comand == 'help'):
             pass
+        
+        
         elif(string_comand == 'login'):
+            success, token = self.client.login(self.cm_args[0], self.cm_args[1])
             pass
+        
+        
         elif(string_comand == 'logout'):
+            self.client.token = None
             pass
+        
+        
+        
         elif(string_comand == 'random'):
+            tweets = self.client.random_n(self.cm_args[10])
             pass
+        
+        
         elif(string_comand == 'update'):
             pass
+        
+        
         elif(string_comand == 'like'):
             pass
+        
+        
         elif(string_comand == 'comment'):
             pass
+        
+        
         elif(string_comand == 'retweet'):
             pass
+        
+        
         elif(string_comand == 'lookuser'):
             pass
+        
+        
         elif(string_comand == 'looktweet'):
             pass
+        
+        
         elif(string_comand == 'followuser'):
             pass
+        
+        
         elif(string_comand == 'info'):
             pass
+        
+        
         elif(string_comand == 'createaccount'):
+            #print(self.cm_args)#[0])
+            # print("esta")
+            success, token = self.client.register(self.cm_args[0], self.cm_args[1])
+            # print("did it {}".format(token))
             pass 
         
     
