@@ -101,6 +101,7 @@ class Command:
         
         elif(string_comand == 'random'):
             tweets = self.client.random_n(self.cm_args[10])
+            # print()
             pass
         
         
