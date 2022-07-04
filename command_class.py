@@ -84,10 +84,46 @@ class Command:
         raise Exception("Sorry,wrong arguments")
     
     
-    
-    def Execute(self, command = 'help'):
-        print('Fill all the commands')
-        pass
+    def Execute(self,string_comand:str) -> str:
+        
+        if(string_comand == 'help'):
+            pass
+        elif(string_comand == 'login'):
+            pass
+        elif(string_comand == 'logout'):
+            pass
+        elif(string_comand == 'random'):
+            pass
+        elif(string_comand == 'update'):
+            tweets = self.client.followed_tweets()
+            print()
+            print(color.BLUE+'PRINTING TWEETS FROM MY FOLLOWS'+color.END)
+            for tweet in tweets:
+                print()
+                print(color.BLUE +"User: "+ color.CYAN+ tweet['user_name'] +"    |    "+color.BLUE+ "Date: "+color.CYAN+ tweet['timestamp'] +color.END)
+                print(color.BLUE +"Text: "+ color.END+ tweet['content'])
+                print(color.BLUE +"Likes: "+ color.CYAN+ tweet['likes']+"    |    "+color.BLUE+ "ID: "+color.CYAN+ tweet['id'] +color.END)
+                print()
+            pass
+        elif(string_comand == 'like'):
+            pass
+        elif(string_comand == 'comment'):
+            self.client.comment()
+            pass
+        elif(string_comand == 'retweet'):
+            self.client.retweet()
+            pass
+        elif(string_comand == 'lookuser'):
+            pass
+        elif(string_comand == 'looktweet'):
+            pass
+        elif(string_comand == 'followuser'):
+            pass
+        elif(string_comand == 'info'):
+            pass
+        elif(string_comand == 'createaccount'):
+            pass 
+        
     
     
     
