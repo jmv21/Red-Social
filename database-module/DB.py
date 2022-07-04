@@ -250,7 +250,7 @@ def execute_order(json_f):
 
 def get_user_name(user_id, db_name: str = 'DB1'):
     db = db_connect(db_name)
-    answ = User.get_by_id(user_id)[0].name
+    answ = User.get_by_id(user_id).name
     db.close()
     return answ
 
@@ -265,10 +265,10 @@ def get_friends(user_id, db_name: str = 'DB1'):
     return r_answ
 
 
-def user_exist_name(name):
-    db = db_connect()
+def user_exist_name(name, db_name: str = 'DB1'):
+    db = db_connect(db_name)
     try:
-        User.get(name == name)
+        User.get(User.name == name)
         return True
     except:
         return False
@@ -276,8 +276,8 @@ def user_exist_name(name):
         db.close()
 
 
-def user_exist(user_id):
-    db = db_connect()
+def user_exist(user_id,  db_name: str = 'DB1'):
+    db = db_connect(db_name)
     try:
         User.get_by_id(user_id)
         return True
