@@ -15,7 +15,6 @@
 
 from array import array
 from concurrent import futures
-from distutils.log import error
 import logging
 import math
 import time
@@ -23,15 +22,15 @@ from xml.etree.ElementTree import tostring
 
 import grpc
 
-from gRPC.chord_pb2 import  Address, Address_list, Feature, Storage
+from gRPC.route_guide_pb2 import  Address, Address_list, Feature, Storage
 #import route_guide_pb2
-import gRPC.chord_pb2_grpc
+import gRPC.route_guide_pb2_grpc
 
 #import chord_node
 #from chord_node import Node
 
 
-class ChordServicer(gRPC.chord_pb2_grpc.RouteGuideServicer):
+class ChordServicer(gRPC.route_guide_pb2_grpc.RouteGuideServicer):
     """Provides methods that implement functionality of route guide server."""
 
     def __init__(self, node):
@@ -51,8 +50,9 @@ class ChordServicer(gRPC.chord_pb2_grpc.RouteGuideServicer):
         return Address(value=n_id, addr=n_addr)
 
     def Find_pred(self, request, context):
+        print(request)
         n_id, n_addr = self.chord_node.find_predecessor(request.value)
-      
+        #n_addr = "{}".format(n_addr)
         return Address(value=n_id, addr=n_addr)
 
     def Get_succ_list(self, request, context):
@@ -75,35 +75,25 @@ class ChordServicer(gRPC.chord_pb2_grpc.RouteGuideServicer):
         return Feature(name="ACK")
 
     def Get_storage(self, request, context):
-        addr_i = request.addr
-        if request.addr == '0':
-            addr_i = None 
-        st_is_storage, st_addr, st_found, st_error = self.chord_node.closest_storage_node(addr_i)
-        return Storage(addr=st_addr, is_storage=st_is_storage, found=st_found, error=st_error)
+        st_is_storage, st_addr, st_found = self.chord_node.closest_storage_node(request.addr)
+        return Storage(addr=st_addr, is_storage=st_is_storage, found=st_found)
 
     def Get_non_storage(self, request, context):
-        addr_i = request.addr
-        if request.addr == '0':
-            addr_i = None 
-        st_is_storage, st_addr, st_found, st_error = self.chord_node.closest_non_storage_node(addr_i)
-        return Storage(addr=st_addr, is_storage=st_is_storage, found=st_found, error=st_error)
+        st_is_storage, st_addr, st_found = self.chord_node.closest_non_storage_node(request.addr)
+        return Storage(addr=st_addr, is_storage=st_is_storage, found=st_found)
 
-    def Make_storage(self, request, context):
-        self.chord_node.make_storage(request.K, request.index, request.nodes.values)
-        return Feature(name="ACK")
-    
-    def Remove_storage(self, request, context):
-        self.chord_node.remove_storage()
-        return Feature(name="ACK")
-
-    # FIRST REQUEST MUST HAVE ADDR NONE:'0'
-    def Get_storage_by_id(self, request, context):
-        addr_i = request.addr
-        if request.addr == '0':
-            addr_i = None 
-
-        addr, id = self.chord_node.get_storage_by_id(int(request.value), addr_i)
-        return Address(value=0,addr=addr)
+        
 
 
+def serve():
+    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
+    gRPC.route_guide_pb2_grpc.add_RouteGuideServicer_to_server(
+        ChordServicer(), server)
+    server.add_insecure_port('[::]:8080')
+    server.start()
+    server.wait_for_termination()
 
+
+#if __name__ == '__main__':
+    #logging.basicConfig()
+    #serve()
