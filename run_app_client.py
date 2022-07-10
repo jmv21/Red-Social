@@ -93,6 +93,28 @@ def CleanCommand(full_string_comd: str ,Flags_Dict: dict , cl) -> Command:
     filter(None, comd)
     comd[0] =comd[0].lower()
     if len(comd) == 1: comd.append('')
+    if comd[0] == 'tweet':
+        text=''
+        for word in comd:
+            if word == comd[0] and text=='':
+                continue
+            else:
+                text+=word
+                text+=' '
+        comd[1] = text
+        comd = comd[0:2]        
+    
+    if comd[0] == 'comment':
+        text=''
+        for word in comd:
+            if (word == comd[0] or word == comd[1]) and text=='':
+                continue
+            else:
+                text+=word
+                text+=' '
+        comd[2] = text
+        comd = comd[0:3]     
+    
     
     #Checking that the user is trying to log in or create an ccount
     if not Flags_Dict['user_logged'] and comd[0] !='login' and comd[0] != 'createaccount':

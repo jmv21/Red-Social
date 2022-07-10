@@ -45,7 +45,8 @@ class Command:
             return string_comand 
         elif(string_comand == 'createaccount'):
             return string_comand 
-        
+        elif(string_comand == 'tweet'):
+            return string_comand 
         
         print("\n Sorry,the command "+string_comand+" does not exist")
         raise Exception("Sorry,command not detected")
@@ -79,6 +80,8 @@ class Command:
             return args[0:2]
         elif(string_comand == 'createaccount'):
             return args[0:3]
+        elif(string_comand == 'tweet'):
+            return args[0:2] 
     
         print("\n Sorry,the command "+string_comand+" does not expected does arguments")
         raise Exception("Sorry,wrong arguments")
@@ -123,6 +126,8 @@ class Command:
             pass
         elif(string_comand == 'retweet'):
             self.client.retweet()
+            pass
+        elif(string_comand == 'tweet'):
             pass
         elif(string_comand == 'lookuser'):
             pass
