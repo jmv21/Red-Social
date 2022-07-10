@@ -99,8 +99,8 @@ def CleanCommand(full_string_comd: str ,Flags_Dict: dict , cl) -> Command:
             if word == comd[0] and text=='':
                 continue
             else:
-                text+=word
-                text+=' '
+                text.join(word)
+                text.join(" ")
         comd[1] = text
         comd = comd[0:2]        
     
@@ -110,8 +110,8 @@ def CleanCommand(full_string_comd: str ,Flags_Dict: dict , cl) -> Command:
             if (word == comd[0] or word == comd[1]) and text=='':
                 continue
             else:
-                text+=word
-                text+=' '
+                text.join(word)
+                text.join(" ")
         comd[2] = text
         comd = comd[0:3]     
     
